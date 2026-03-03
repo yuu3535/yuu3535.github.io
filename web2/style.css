@@ -101,8 +101,17 @@ button:active {
 }
 
 .boardWrap {
-    position: relative;
-    /* ← これ重要（オーバーレイ重ねる） */
+  position: relative;
+  width: min(92vw, 680px);
+  aspect-ratio: 1 / 1;
+  padding: 18px;
+}
+
+canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: manipulation;
 }
 
 
@@ -197,4 +206,5 @@ button:active {
 /* 画面ドラッグでページが動かないように（ゲーム向け） */
 body {
     overscroll-behavior: none;
+
 }
