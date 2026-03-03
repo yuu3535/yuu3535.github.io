@@ -1,1 +1,70 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#05070a" />
+  <title>My Game Arcade</title>
 
+  <link rel="stylesheet" href="./home.css" />
+</head>
+
+<body>
+  <main class="wrap">
+    <header class="hero">
+      <div class="badge">Personal Arcade</div>
+      <h1>MY GAME ARCADE</h1>
+      <p class="sub">
+        自分用のミニゲーム置き場。気が向いたら増築していく予定。
+      </p>
+    </header>
+
+    <section class="grid" aria-label="ゲーム一覧">
+      <!-- Reversi -->
+      <a class="card" href="./web2/" aria-label="NEON REVERSI を開く">
+        <div class="cardTop">
+          <div class="title">NEON REVERSI</div>
+          <div class="tag">Playable</div>
+        </div>
+        <div class="desc">
+          ネオン調リバーシ。CPU：Easy / Normal / Hard
+        </div>
+        <div class="meta">
+          <span>HTML / Canvas</span>
+          <span>Mobile OK</span>
+        </div>
+        <div class="cta">Play →</div>
+      </a>
+
+      <!-- 追加用ダミー（あとで増やす） -->
+      <div class="card ghost" aria-hidden="true">
+        <div class="cardTop">
+          <div class="title">NEXT GAME</div>
+          <div class="tag">Soon</div>
+        </div>
+        <div class="desc">
+          ここに次のゲームを追加予定。
+        </div>
+        <div class="meta">
+          <span>Coming soon</span>
+          <span>🎮</span>
+        </div>
+        <div class="cta">Build →</div>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <div class="hint">
+        iPhone: 共有 → 「ホーム画面に追加」でアプリっぽく起動できます
+      </div>
+      <div class="small">
+        © <span id="y"></span> My Arcade
+      </div>
+    </footer>
+  </main>
+
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
+</body>
+</html>
