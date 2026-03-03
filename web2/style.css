@@ -100,13 +100,19 @@ button:active {
     line-height: 1.6;
 }
 
+/* 盤面の箱 */
 .boardWrap {
-  position: relative;
   width: min(92vw, 680px);
   aspect-ratio: 1 / 1;
   padding: 18px;
 }
 
+/* スマホはちょい余白減らす */
+@media (max-width: 520px) {
+  .boardWrap { padding: 12px; }
+}
+
+/* キャンバスは箱にフィット */
 canvas {
   width: 100%;
   height: 100%;
@@ -208,3 +214,4 @@ body {
     overscroll-behavior: none;
 
 }
+
