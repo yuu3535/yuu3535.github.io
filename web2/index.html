@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="ja">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NEON REVERSI (Web)</title>
+    <link rel="stylesheet" href="./style.css" />
+</head>
+
+<body>
+    <div class="wrap">
+        <h1>NEON REVERSI</h1>
+        <div id="status" class="status">タップ/クリックして開始</div>
+
+        <div class="boardWrap">
+            <div class="boardWrap">
+                <canvas id="cv" width="640" height="640"></canvas>
+
+                <!-- 結果オーバーレイ -->
+                <div id="resultOverlay" class="resultOverlay isHidden">
+                    <div id="resultText" class="resultText">YOU WIN</div>
+                    <div id="resultSub" class="resultSub">BLACK:0 WHITE:0</div>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="controls">
+            <button id="restart">RESTART</button>
+
+            <div class="cpu">
+                <span>CPU:</span>
+                <button id="cpu_easy" class="cpuBtn isOn">Easy</button>
+                <button id="cpu_normal" class="cpuBtn">Normal</button>
+                <button id="cpu_hard" class="cpuBtn">Hard</button>
+            </div>
+        </div>
+
+        <div class="hint">
+            タップ/クリックで置く。置けない時は自動パス。<br />
+            音が鳴らない時は一度どこかをタップして“音の許可”を通してね。
+        </div>
+    </div>
+
+    <script src="./game.js"></script>
+</body>
+
+</html>
