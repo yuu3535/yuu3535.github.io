@@ -1,446 +1,69 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>立ち絵アニメーター</title>
-<style>
-  @import url('https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@300;400;700&display=swap');
-  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
-  :root{
-    --bg:#0d0f14;--panel:#13161e;--border:#1e2230;
-    --accent:#7eb8f7;--accent2:#f7b8c0;--accent3:#b8f7d4;
-    --text:#c8d0e0;--text-dim:#5a6278;--glow:rgba(126,184,247,0.15);
-  }
-  body{background:var(--bg);color:var(--text);font-family:'Zen Kaku Gothic New',sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;padding:24px 16px;gap:20px;}
-  h1{font-size:13px;font-weight:300;letter-spacing:.3em;color:var(--text-dim);text-transform:uppercase;}
-  .layout{display:flex;gap:20px;align-items:flex-start;width:100%;max-width:1100px;flex-wrap:wrap;justify-content:center;}
-  .canvas-wrap{position:relative;flex:0 0 auto;background-image:linear-gradient(45deg,#1a1c24 25%,transparent 25%),linear-gradient(-45deg,#1a1c24 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#1a1c24 75%),linear-gradient(-45deg,transparent 75%,#1a1c24 75%);background-size:16px 16px;background-position:0 0,0 8px,8px -8px,-8px 0;background-color:#141620;border-radius:12px;border:1px solid var(--border);max-width:min(480px,calc(100vw - 340px));overflow:hidden;}
-  #cv{display:block;width:100%;height:auto;}
-  .canvas-label{position:absolute;bottom:10px;right:14px;font-size:10px;letter-spacing:.2em;color:var(--text-dim);pointer-events:none;}
-  .res-badge{position:absolute;top:10px;left:10px;background:rgba(13,15,20,.75);border:1px solid var(--border);border-radius:5px;padding:3px 8px;font-size:10px;color:var(--text-dim);pointer-events:none;backdrop-filter:blur(4px);}
-  .panel{flex:1 1 280px;display:flex;flex-direction:column;gap:14px;min-width:260px;max-width:320px;}
-  .card{background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;}
-  .card-title{font-size:10px;letter-spacing:.25em;color:var(--text-dim);text-transform:uppercase;margin-bottom:14px;}
-  .upload-pair{display:flex;flex-direction:column;gap:10px;}
-  .uz{border:1px dashed var(--border);border-radius:8px;padding:12px 14px;cursor:pointer;transition:border-color .2s,background .2s;font-size:12px;color:var(--text-dim);display:flex;align-items:center;gap:10px;}
-  .uz:hover,.uz.drag-over{border-color:var(--accent);background:rgba(126,184,247,.04);color:var(--text);}
-  .uz.loaded.main{border-style:solid;border-color:rgba(126,184,247,.5);}
-  .uz.loaded.blink{border-style:solid;border-color:rgba(247,184,192,.5);}
-  .uz-icon{font-size:18px;flex-shrink:0;}
-  .uz-text{display:flex;flex-direction:column;gap:2px;min-width:0;}
-  .uz-label{font-size:10px;letter-spacing:.12em;}
-  .uz-label.main{color:var(--accent);}
-  .uz-label.blink{color:var(--accent2);}
-  .uz-sub{font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:160px;}
-  .uz-stat{margin-left:auto;font-size:11px;flex-shrink:0;}
-  .uz-stat.ok{color:var(--accent3);}
-  input[type=file]{display:none;}
-  .hint{background:rgba(247,184,192,.06);border:1px solid rgba(247,184,192,.2);border-radius:8px;padding:10px 12px;font-size:11px;color:var(--text-dim);line-height:1.7;margin-bottom:12px;}
-  .hint strong{color:var(--accent2);font-weight:400;}
-  .mgrid{display:flex;flex-direction:column;gap:10px;}
-  .mrow{display:flex;align-items:center;justify-content:space-between;}
-  .mlabel{font-size:12px;color:var(--text);display:flex;align-items:center;gap:8px;}
-  .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);}
-  .dot.p{background:var(--accent2);box-shadow:0 0 6px var(--accent2);}
-  .dot.g{background:#7ef7b0;box-shadow:0 0 6px #7ef7b0;}
-  .dot.v{background:#c4b8f7;box-shadow:0 0 6px #c4b8f7;}
-  .tog{position:relative;width:36px;height:20px;cursor:pointer;}
-  .tog input{display:none;}
-  .tog-track{position:absolute;inset:0;border-radius:10px;background:var(--border);transition:background .2s;}
-  .tog input:checked~.tog-track{background:var(--accent);}
-  .tog-thumb{position:absolute;top:3px;left:3px;width:14px;height:14px;border-radius:50%;background:#fff;transition:transform .2s;}
-  .tog input:checked~.tog-thumb{transform:translateX(16px);}
-  .srow{display:flex;flex-direction:column;gap:6px;margin-top:4px;}
-  .shdr{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dim);}
-  .sval{color:var(--text);font-weight:700;}
-  input[type=range]{-webkit-appearance:none;width:100%;height:3px;background:var(--border);border-radius:2px;outline:none;cursor:pointer;}
-  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border-radius:50%;background:var(--accent);box-shadow:0 0 6px var(--accent);}
-  .btn{width:100%;padding:10px;border:1px solid var(--accent);border-radius:8px;background:transparent;color:var(--accent);font-family:inherit;font-size:12px;letter-spacing:.15em;cursor:pointer;transition:background .2s,box-shadow .2s;text-transform:uppercase;}
-  .btn+.btn{margin-top:8px;}
-  .btn:hover{background:rgba(126,184,247,.08);box-shadow:0 0 16px var(--glow);}
-  .btn:disabled{opacity:.35;cursor:default;}
-  .btn.s{border-color:var(--border);color:var(--text-dim);font-size:11px;}
-  .btn.s:hover{border-color:var(--accent);color:var(--accent);background:rgba(126,184,247,.04);box-shadow:none;}
-  .btn.a{border-color:var(--accent3);color:var(--accent3);}
-  .btn.a:hover{background:rgba(184,247,212,.08);box-shadow:0 0 16px rgba(184,247,212,.15);}
-  .egrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
-  .ef{display:flex;flex-direction:column;gap:4px;}
-  .ef label{font-size:10px;letter-spacing:.1em;color:var(--text-dim);}
-  .ef select{background:#0d0f14;border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;padding:5px 8px;outline:none;cursor:pointer;}
-  .pwrap{margin-top:10px;display:none;}
-  .pwrap.show{display:block;}
-  .pbg{height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-  .pfill{height:100%;background:var(--accent3);border-radius:2px;width:0%;transition:width .15s;}
-  .plbl{font-size:10px;color:var(--text-dim);letter-spacing:.1em;margin-top:4px;text-align:center;}
-  #bw{margin-top:10px;height:4px;background:var(--border);border-radius:2px;overflow:hidden;}
-  #bb{height:100%;width:0%;background:var(--accent2);border-radius:2px;}
-  #status{font-size:11px;color:var(--text-dim);text-align:center;min-height:16px;letter-spacing:.1em;}
-  .tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:4px;letter-spacing:.1em;vertical-align:middle;margin-left:6px;background:rgba(90,98,120,.3);color:var(--text-dim);border:1px solid var(--border);}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#05070a" />
+  <title>My Game Arcade</title>
+  <link rel="stylesheet" href="./web2/home.css" />
 </head>
+
 <body>
-<h1>立ち絵 · ライブモーション</h1>
-<div class="layout">
-  <div class="canvas-wrap">
-    <canvas id="cv"></canvas>
-    <div class="res-badge" id="res-badge">— × —</div>
-    <span class="canvas-label">PREVIEW</span>
-  </div>
-  <div class="panel">
-    <div class="card">
-      <div class="card-title">画像を読み込む</div>
-      <div class="upload-pair">
-        <div class="uz main" id="uz-main">
-          <span class="uz-icon">🖼️</span>
-          <div class="uz-text">
-            <span class="uz-label main">MAIN — 通常立ち絵</span>
-            <span class="uz-sub" id="sub-main">PNG / JPG をドロップ or クリック</span>
-          </div>
-          <span class="uz-stat" id="stat-main"></span>
-          <input type="file" id="fi-main" accept="image/*">
+  <main class="wrap">
+    <header class="hero">
+      <div class="badge">Personal Arcade</div>
+      <h1>MY GAME ARCADE</h1>
+      <p class="sub">
+        自分用のミニゲーム置き場。気が向いたら増築していく予定。
+      </p>
+    </header>
+
+    <section class="grid" aria-label="ゲーム一覧">
+      <!-- Reversi -->
+      <a class="card" href="./web2/" aria-label="NEON REVERSI を開く">
+        <div class="cardTop">
+          <div class="title">NEON REVERSI</div>
+          <div class="tag">Playable</div>
         </div>
-        <div class="uz blink" id="uz-blink">
-          <span class="uz-icon">😌</span>
-          <div class="uz-text">
-            <span class="uz-label blink">BLINK — 目閉じ差分<span class="tag">OPTIONAL</span></span>
-            <span class="uz-sub" id="sub-blink">読み込むと自然な瞬きになります</span>
-          </div>
-          <span class="uz-stat" id="stat-blink"></span>
-          <input type="file" id="fi-blink" accept="image/*">
+        <div class="desc">
+          ネオン調リバーシ。CPU：Easy / Normal / Hard
         </div>
+        <div class="meta">
+          <span>HTML / Canvas</span>
+          <span>Mobile OK</span>
+        </div>
+        <div class="cta">Play →</div>
+      </a>
+
+      <!-- 追加用ダミー（あとで増やす） -->
+      <div class="card ghost" aria-hidden="true">
+        <div class="cardTop">
+          <div class="title">NEXT GAME</div>
+          <div class="tag">Soon</div>
+        </div>
+        <div class="desc">
+          ここに次のゲームを追加予定。
+        </div>
+        <div class="meta">
+          <span>Coming soon</span>
+          <span>🎮</span>
+        </div>
+        <div class="cta">Build →</div>
       </div>
-    </div>
-    <div class="card">
-      <div class="card-title">👁 瞬き設定</div>
+    </section>
+
+    <footer class="foot">
       <div class="hint">
-        <strong>差分画像あり</strong>：目閉じ画像をαブレンド（完全自然）<br>
-        <strong>差分画像なし</strong>：疑似まぶたオーバーレイ
+        iPhone: 共有 → 「ホーム画面に追加」でアプリっぽく起動できます
       </div>
-      <div class="mrow" style="margin-bottom:12px">
-        <span class="mlabel"><span class="dot p"></span>瞬きを有効にする</span>
-        <label class="tog"><input type="checkbox" id="tog-blink" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
+      <div class="small">
+        © <span id="y"></span> My Arcade
       </div>
-      <div class="mrow" style="margin-bottom:12px">
-        <span class="mlabel"><span class="dot p"></span>2回瞬き（ランダム）</span>
-        <label class="tog"><input type="checkbox" id="tog-double" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
-      </div>
-      <div class="srow">
-        <div class="shdr"><span>瞬きの頻度</span><span class="sval" id="v-bfreq">普通</span></div>
-        <input type="range" id="r-bfreq" min="1" max="5" value="3">
-      </div>
-      <div class="srow" style="margin-top:10px">
-        <div class="shdr"><span>まぶたの速さ</span><span class="sval" id="v-bspd">普通</span></div>
-        <input type="range" id="r-bspd" min="1" max="5" value="3">
-      </div>
-      <div id="bw"><div id="bb"></div></div>
-    </div>
-    <div class="card">
-      <div class="card-title">モーション設定</div>
-      <div class="mgrid">
-        <div class="mrow">
-          <span class="mlabel"><span class="dot"></span>呼吸（体の上下）</span>
-          <label class="tog"><input type="checkbox" id="tog-breath" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
-        </div>
-        <div class="mrow">
-          <span class="mlabel"><span class="dot g"></span>体の重心移動</span>
-          <label class="tog"><input type="checkbox" id="tog-sway" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
-        </div>
-        <div class="mrow">
-          <span class="mlabel"><span class="dot v"></span>口元の微動</span>
-          <label class="tog"><input type="checkbox" id="tog-mouth" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
-        </div>
-        <div class="mrow">
-          <span class="mlabel"><span class="dot p"></span>マウス追従</span>
-          <label class="tog"><input type="checkbox" id="tog-mouse"><div class="tog-track"></div><div class="tog-thumb"></div></label>
-        </div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">パラメータ</div>
-      <div class="srow">
-        <div class="shdr"><span>呼吸速度</span><span class="sval" id="v-bspeed">1.0×</span></div>
-        <input type="range" id="r-bspeed" min="1" max="30" value="10">
-      </div>
-      <div class="srow" style="margin-top:12px">
-        <div class="shdr"><span>呼吸の深さ</span><span class="sval" id="v-bamp">中</span></div>
-        <input type="range" id="r-bamp" min="1" max="10" value="4">
-      </div>
-      <div class="srow" style="margin-top:12px">
-        <div class="shdr"><span>揺れの強さ</span><span class="sval" id="v-sway">1.0×</span></div>
-        <input type="range" id="r-sway" min="1" max="20" value="8">
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-title">書き出し</div>
-      <div class="egrid">
-        <div class="ef"><label>秒数</label>
-          <select id="e-sec"><option value="3">3秒</option><option value="5" selected>5秒</option><option value="8">8秒</option><option value="10">10秒</option></select>
-        </div>
-        <div class="ef"><label>FPS</label>
-          <select id="e-fps"><option value="12">12fps（軽い）</option><option value="20" selected>20fps</option><option value="30">30fps</option></select>
-        </div>
-        <div class="ef"><label>解像度スケール</label>
-          <select id="e-scale"><option value="0.25">25%</option><option value="0.5" selected>50%</option><option value="0.75">75%</option><option value="1.0">100%</option></select>
-        </div>
-        <div class="ef"><label>予想フレーム数</label>
-          <select disabled style="opacity:.5"><option id="e-frames">—</option></select>
-        </div>
-      </div>
-      <button class="btn a" id="btn-apng">✦ APNG書き出し（透過）</button>
-      <button class="btn s" id="btn-png">📷 現フレームPNG（透過）</button>
-      <div class="pwrap" id="pwrap">
-        <div class="pbg"><div class="pfill" id="pfill"></div></div>
-        <div class="plbl" id="plbl">準備中…</div>
-      </div>
-      <p id="status" style="margin-top:10px">← 立ち絵を読み込むと動き出します</p>
-    </div>
-  </div>
-</div>
-<script>
-// APNG encoder
-function crc32(buf,s,l){
-  const T=crc32.T||(crc32.T=(()=>{const t=new Uint32Array(256);for(let i=0;i<256;i++){let c=i;for(let j=0;j<8;j++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);t[i]=c;}return t;})());
-  let c=0xffffffff;for(let i=s;i<s+l;i++)c=T[(c^buf[i])&0xff]^(c>>>8);return(c^0xffffffff)>>>0;
-}
-function wChunk(out,off,type,data){
-  const t=type.split('').map(c=>c.charCodeAt(0)),dl=data?data.length:0,v=new DataView(out.buffer,out.byteOffset);
-  v.setUint32(off,dl,false);off+=4;
-  out[off]=t[0];out[off+1]=t[1];out[off+2]=t[2];out[off+3]=t[3];off+=4;
-  if(data&&dl>0){out.set(data,off);off+=dl;}
-  v.setUint32(off,crc32(out,off-dl-4,4+dl),false);off+=4;return off;
-}
-async function encodeAPNG(frames,w,h,dn,dd,onP){
-  const nf=frames.length,comp=[];
-  for(let fi=0;fi<nf;fi++){
-    const raw=new Uint8Array(h*(1+w*4));
-    for(let y=0;y<h;y++){raw[y*(1+w*4)]=0;const s=y*w*4;raw.set(frames[fi].data.subarray(s,s+w*4),y*(1+w*4)+1);}
-    const cs=new CompressionStream('deflate'),wr=cs.writable.getWriter();wr.write(raw);wr.close();
-    comp.push(new Uint8Array(await new Response(cs.readable).arrayBuffer()));
-    if(onP)onP('c',fi,nf);if(fi%3===0)await new Promise(r=>setTimeout(r,0));
-  }
-  let sz=8+25+20+12;for(let i=0;i<nf;i++)sz+=38+12+(i===0?0:4)+comp[i].length;
-  const out=new Uint8Array(sz);let off=0;
-  [137,80,78,71,13,10,26,10].forEach(b=>out[off++]=b);
-  const ih=new Uint8Array(13),iv=new DataView(ih.buffer);iv.setUint32(0,w,false);iv.setUint32(4,h,false);ih[8]=8;ih[9]=6;
-  off=wChunk(out,off,'IHDR',ih);
-  const ac=new Uint8Array(8),av=new DataView(ac.buffer);av.setUint32(0,nf,false);av.setUint32(4,0,false);
-  off=wChunk(out,off,'acTL',ac);
-  let seq=0;
-  for(let fi=0;fi<nf;fi++){
-    const fc=new Uint8Array(26),fv=new DataView(fc.buffer);
-    fv.setUint32(0,seq++,false);fv.setUint32(4,w,false);fv.setUint32(8,h,false);
-    fv.setUint32(12,0,false);fv.setUint32(16,0,false);fv.setUint16(20,dn,false);fv.setUint16(22,dd,false);fc[24]=0;fc[25]=0;
-    off=wChunk(out,off,'fcTL',fc);
-    if(fi===0){off=wChunk(out,off,'IDAT',comp[fi]);}
-    else{const fd=new Uint8Array(4+comp[fi].length);new DataView(fd.buffer).setUint32(0,seq++,false);fd.set(comp[fi],4);off=wChunk(out,off,'fdAT',fd);}
-    if(onP)onP('e',fi,nf);
-  }
-  wChunk(out,off,'IEND',null);return out;
-}
+    </footer>
+  </main>
 
-// App
-const canvas=document.getElementById('cv');
-const ctx=canvas.getContext('2d',{alpha:true});
-let imgMain=null,imgBlink=null,CW=360,CH=540,t=0;
-let mouseX=0,mouseY=0;
-
-const M={breath:true,blink:true,doubleBlink:true,sway:true,mouth:true,mouse:false,
-  breathSpd:1.0,breathAmp:4,swayAmt:1.0,blinkFreq:3,blinkSpd:3};
-
-let bState='open',bTimer=3+Math.random()*4,bAlpha=0,bCount=0;
-let mAmp=0,mTarget=0,mTimer=1;
-
-canvas.addEventListener('mousemove',e=>{
-  const r=canvas.getBoundingClientRect();
-  mouseX=(e.clientX-r.left)*(CW/r.width);mouseY=(e.clientY-r.top)*(CH/r.height);
-});
-
-// Upload
-function mkUp(zId,fId,stId,sbId,cb){
-  const z=document.getElementById(zId),f=document.getElementById(fId);
-  z.addEventListener('click',()=>f.click());
-  z.addEventListener('dragover',e=>{e.preventDefault();z.classList.add('drag-over');});
-  z.addEventListener('dragleave',()=>z.classList.remove('drag-over'));
-  z.addEventListener('drop',e=>{e.preventDefault();z.classList.remove('drag-over');go(e.dataTransfer.files[0]);});
-  f.addEventListener('change',()=>go(f.files[0]));
-  function go(file){
-    if(!file||!file.type.startsWith('image/'))return;
-    const img=new Image();
-    img.onload=()=>{
-      document.getElementById(stId).textContent='✓';
-      document.getElementById(stId).className='uz-stat ok';
-      document.getElementById(sbId).textContent=file.name;
-      z.classList.add('loaded');cb(img);
-    };
-    img.src=URL.createObjectURL(file);
-  }
-}
-mkUp('uz-main','fi-main','stat-main','sub-main',img=>{
-  imgMain=img;CW=img.naturalWidth;CH=img.naturalHeight;
-  canvas.width=CW;canvas.height=CH;mouseX=CW/2;mouseY=CH/2;
-  document.getElementById('res-badge').textContent=`${CW} × ${CH}`;
-  document.getElementById('status').textContent=`✓ 読み込み完了 (${CW}×${CH})`;
-  updFC();
-});
-mkUp('uz-blink','fi-blink','stat-blink','sub-blink',img=>{
-  imgBlink=img;document.getElementById('status').textContent='✓ 差分画像も読み込みました！';
-});
-
-// Controls
-const on=(id,k)=>document.getElementById(id).addEventListener('change',e=>M[k]=e.target.checked);
-on('tog-breath','breath');on('tog-blink','blink');on('tog-double','doubleBlink');
-on('tog-sway','sway');on('tog-mouth','mouth');on('tog-mouse','mouse');
-const DL=['','極小','小','小','中','中','中','大','大','大','極大'];
-document.getElementById('r-bspeed').addEventListener('input',e=>{M.breathSpd=e.target.value/10;document.getElementById('v-bspeed').textContent=M.breathSpd.toFixed(1)+'×';});
-document.getElementById('r-bamp').addEventListener('input',e=>{M.breathAmp=+e.target.value;document.getElementById('v-bamp').textContent=DL[e.target.value];});
-document.getElementById('r-sway').addEventListener('input',e=>{M.swayAmt=e.target.value/8;document.getElementById('v-sway').textContent=M.swayAmt.toFixed(1)+'×';});
-document.getElementById('r-bfreq').addEventListener('input',e=>{M.blinkFreq=+e.target.value;document.getElementById('v-bfreq').textContent=['','まれ','ゆっくり','普通','多め','頻繁'][e.target.value];});
-document.getElementById('r-bspd').addEventListener('input',e=>{M.blinkSpd=+e.target.value;document.getElementById('v-bspd').textContent=['','ゆっくり','やや遅め','普通','やや速め','速い'][e.target.value];});
-['e-sec','e-fps','e-scale'].forEach(id=>document.getElementById(id).addEventListener('change',updFC));
-function updFC(){
-  const s=+document.getElementById('e-sec').value,f=+document.getElementById('e-fps').value,sc=+document.getElementById('e-scale').value;
-  document.getElementById('e-frames').textContent=`${s*f}枚 / ${Math.round(CW*sc)}×${Math.round(CH*sc)}`;
-}
-
-// Simulation
-function rndBW(){return [8,5.5,3.5,2,1][M.blinkFreq-1]+Math.random()*[4,3,2,1.5,1][M.blinkFreq-1];}
-
-function updBlink(dt){
-  if(!M.blink){bAlpha=0;return;}
-  const cT=[0.15,0.11,0.07,0.055,0.04][M.blinkSpd-1];
-  const oT=[0.20,0.14,0.09,0.07,0.05][M.blinkSpd-1];
-  bTimer-=dt;
-  switch(bState){
-    case 'open':
-      bAlpha=0;
-      if(bTimer<=0){bState='closing';bCount=(M.doubleBlink&&Math.random()<0.3)?2:1;}
-      break;
-    case 'closing':
-      bAlpha=Math.min(1,bAlpha+dt/cT);
-      if(bAlpha>=1){bState='closed';bTimer=0.03+Math.random()*0.04;}
-      break;
-    case 'closed':
-      bAlpha=1;if(bTimer<=0)bState='opening';
-      break;
-    case 'opening':
-      bAlpha=Math.max(0,bAlpha-dt/oT);
-      if(bAlpha<=0){
-        bCount--;
-        if(bCount>0){bState='open';bTimer=0.08+Math.random()*0.06;}
-        else{bState='open';bTimer=rndBW();}
-      }
-      break;
-  }
-}
-
-function updMouth(dt){
-  mTimer-=dt;
-  if(mTimer<=0){mTarget=Math.random()<0.4?Math.random()*0.5:0;mTimer=1+Math.random()*3;}
-  mAmp+=(mTarget-mAmp)*dt*1.5;
-}
-
-function eio(x){return x<0.5?2*x*x:-1+(4-2*x)*x;}
-
-function bodyXf(){
-  const sc=CH/540;
-  let bY=0,bSY=1,bSX=1;
-  if(M.breath){const b=Math.sin(t*M.breathSpd*0.9)*0.5+0.5;bY=-b*M.breathAmp*sc;bSY=1+b*(M.breathAmp*0.0012);bSX=1-b*(M.breathAmp*0.0006);}
-  let sX=0,sR=0;
-  if(M.sway){const s1=Math.sin(t*0.37),s2=Math.sin(t*0.23+1.0);sX=(s1*0.7+s2*0.3)*2.5*M.swayAmt*sc;sR=Math.sin(t*0.37-0.4)*0.005*M.swayAmt;}
-  let fX=0,fY=0;
-  if(M.mouse){fX=((mouseX-CW/2)/CW)*12*sc;fY=((mouseY-CH/2)/CH)*8*sc;}
-  return{tx:sX+fX,ty:bY+fY,rot:sR,scX:bSX,scY:bSY};
-}
-
-function renderFrame(tc,w,h){
-  tc.clearRect(0,0,w,h);
-  if(!imgMain)return;
-  const rx=w/CW,ry=h/CH;
-  const{tx,ty,rot,scX,scY}=bodyXf();
-  tc.save();
-  tc.globalAlpha=1;
-  tc.translate(w/2+tx*rx,h/2+ty*ry);
-  tc.rotate(rot);tc.scale(scX,scY);
-  tc.drawImage(imgMain,-w/2,-h/2,w,h);
-  if(imgBlink&&bAlpha>0){tc.globalAlpha=bAlpha;tc.drawImage(imgBlink,-w/2,-h/2,w,h);}
-  tc.restore();
-  // fallback blink
-  if(!imgBlink&&M.blink&&bAlpha>0){
-    const ey=h*0.25+ty*ry,ex=w*0.5+tx*rx,lW=w*0.36,lH=h*0.045*eio(bAlpha);
-    tc.save();tc.translate(ex,ey);tc.rotate(rot);
-    const g=tc.createLinearGradient(0,-lH*.5,0,lH*.5);
-    g.addColorStop(0,`rgba(0,0,0,${bAlpha*.92})`);g.addColorStop(1,'rgba(0,0,0,0)');
-    tc.fillStyle=g;tc.beginPath();tc.ellipse(0,0,lW/2,lH*.7,0,0,Math.PI*2);tc.fill();tc.restore();
-  }
-  // mouth micro
-  if(M.mouth&&mAmp>0.02){
-    const mx=w*0.5+tx*rx,my=h*0.38+ty*ry,mw=w*0.18,mh=h*0.05,sc2=1+mAmp*0.008;
-    tc.save();
-    tc.beginPath();tc.ellipse(mx,my,mw,mh,rot,0,Math.PI*2);tc.clip();
-    tc.translate(mx,my);tc.scale(sc2,1+mAmp*0.003);tc.translate(-mx,-my);
-    tc.drawImage(imgMain,tx*rx,ty*ry,w,h);
-    tc.restore();
-  }
-}
-
-// Live loop
-let last=0;
-function frame(ts){
-  const dt=Math.min((ts-last)/1000,0.05);last=ts;t+=dt;
-  updBlink(dt);updMouth(dt);
-  renderFrame(ctx,CW,CH);
-  document.getElementById('bb').style.width=(bAlpha*100)+'%';
-  requestAnimationFrame(frame);
-}
-
-// APNG
-document.getElementById('btn-apng').addEventListener('click',async()=>{
-  if(!imgMain){document.getElementById('status').textContent='先に立ち絵を読み込んでください';return;}
-  const sec=+document.getElementById('e-sec').value,fps=+document.getElementById('e-fps').value,scale=+document.getElementById('e-scale').value;
-  const TF=sec*fps,sw=Math.round(CW*scale),sh=Math.round(CH*scale),dt=1/fps;
-  const btn=document.getElementById('btn-apng'),pw=document.getElementById('pwrap');
-  const fill=document.getElementById('pfill'),lbl=document.getElementById('plbl');
-  btn.disabled=true;pw.classList.add('show');fill.style.width='0%';
-  const oc=document.createElement('canvas');oc.width=sw;oc.height=sh;
-  const otx=oc.getContext('2d',{alpha:true});
-  const sv={t,bState,bTimer,bAlpha,bCount,mAmp,mTarget,mTimer};
-  t=0;bState='open';bTimer=rndBW();bAlpha=0;bCount=0;mAmp=0;mTarget=0;mTimer=1;
-  lbl.textContent='フレームを収集中…';
-  const frames=[];
-  for(let fi=0;fi<TF;fi++){
-    updBlink(dt);updMouth(dt);renderFrame(otx,sw,sh);
-    frames.push(otx.getImageData(0,0,sw,sh));t+=dt;
-    if(fi%4===0){fill.style.width=((fi/TF)*50)+'%';lbl.textContent=`フレーム収集中… ${fi+1}/${TF}`;await new Promise(r=>setTimeout(r,0));}
-  }
-  t=sv.t;bState=sv.bState;bTimer=sv.bTimer;bAlpha=sv.bAlpha;bCount=sv.bCount;
-  mAmp=sv.mAmp;mTarget=sv.mTarget;mTimer=sv.mTimer;
-  fill.style.width='55%';lbl.textContent='PNG圧縮・エンコード中…';await new Promise(r=>setTimeout(r,20));
-  try{
-    const apng=await encodeAPNG(frames,sw,sh,1,fps,(ph,fi,nf)=>{
-      fill.style.width=(ph==='c'?55+(fi/nf)*35:90+(fi/nf)*8)+'%';
-      lbl.textContent=ph==='c'?`PNG圧縮中… ${fi+1}/${nf}`:`チャンク組立中… ${fi+1}/${nf}`;
-    });
-    fill.style.width='100%';lbl.textContent='✓ 完了！';
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([apng],{type:'image/png'}));
-    a.download=`live-portrait-${sw}x${sh}-${fps}fps.png`;a.click();
-    document.getElementById('status').textContent=`✓ APNG完成 (${sw}×${sh}, ${TF}枚)`;
-  }catch(e){lbl.textContent='❌ エラー: '+e.message;console.error(e);}
-  btn.disabled=false;setTimeout(()=>pw.classList.remove('show'),4000);
-});
-
-// PNG
-document.getElementById('btn-png').addEventListener('click',()=>{
-  if(!imgMain){document.getElementById('status').textContent='先に読み込んでください';return;}
-  canvas.toBlob(blob=>{
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='frame.png';a.click();
-    document.getElementById('status').textContent='✓ PNG保存完了（透過）';
-  },'image/png');
-});
-
-canvas.width=360;canvas.height=540;
-updFC();
-requestAnimationFrame(frame);
-</script>
+  <script>
+    document.getElementById("y").textContent = new Date().getFullYear();
+  </script>
 </body>
 </html>
