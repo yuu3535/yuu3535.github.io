@@ -77,6 +77,21 @@
   #bb{height:100%;width:0%;background:var(--accent2);border-radius:2px;}
   #status{font-size:11px;color:var(--text-dim);text-align:center;min-height:16px;letter-spacing:.1em;}
   .tag{display:inline-block;font-size:9px;padding:2px 6px;border-radius:4px;letter-spacing:.1em;vertical-align:middle;margin-left:6px;background:rgba(90,98,120,.3);color:var(--text-dim);border:1px solid var(--border);}
+
+  .bgctrl{display:flex;flex-direction:column;gap:10px;}
+  .bgrow{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  .bgrow label{font-size:11px;color:var(--text-dim);}
+  .bgrow input[type=color]{width:54px;height:32px;border:none;background:none;padding:0;cursor:pointer;}
+  .bgrow select{flex:1;background:#0d0f14;border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:inherit;font-size:12px;padding:6px 8px;outline:none;cursor:pointer;}
+  .bgrow .mini-btn{padding:8px 10px;border:1px solid var(--border);border-radius:6px;background:#0d0f14;color:var(--text-dim);font-size:11px;cursor:pointer;}
+  .bgrow .mini-btn:hover{border-color:var(--accent);color:var(--accent);}
+  .bgname{font-size:11px;color:var(--text-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px;}
+  .sub-item{border:1px solid var(--border);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px;background:#0d0f14;}
+  .sub-item-name{font-size:11px;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;}
+  .sub-item-meta{font-size:10px;color:var(--text-dim);}
+  .sub-item button{padding:4px 8px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-dim);cursor:pointer;font-size:10px;}
+  .sub-item button:hover{border-color:var(--accent2);color:var(--accent2);}
+
 </style>
 </head>
 <body>
@@ -100,37 +115,43 @@
           <span class="uz-stat" id="stat-main"></span>
           <input type="file" id="fi-main" accept="image/*">
         </div>
-        <div class="uz blink" id="uz-blink">
-          <span class="uz-icon">😌</span>
+        <div class="uz blink" id="uz-add-sub">
+          <span class="uz-icon">➕</span>
           <div class="uz-text">
-            <span class="uz-label blink">BLINK — 目閉じ差分<span class="tag">OPTIONAL</span></span>
-            <span class="uz-sub" id="sub-blink">読み込むと自然な瞬きになります</span>
+            <span class="uz-label blink">SUB — 差分画像を追加<span class="tag">OPTIONAL</span></span>
+            <span class="uz-sub" id="sub-blink">複数枚の差分を追加して、ランダムに切り替えできます</span>
           </div>
           <span class="uz-stat" id="stat-blink"></span>
-          <input type="file" id="fi-blink" accept="image/*">
+          <input type="file" id="fi-blink" accept="image/*" multiple>
         </div>
+        <div id="sub-list" style="display:flex;flex-direction:column;gap:8px;"></div>
       </div>
     </div>
     <div class="card">
-      <div class="card-title">👁 瞬き設定</div>
+      <div class="card-title">差分モーション設定</div>
       <div class="hint">
-        <strong>差分画像あり</strong>：目閉じ画像をαブレンド（完全自然）<br>
-        <strong>差分画像なし</strong>：疑似まぶたオーバーレイ
+        <strong>差分画像</strong>を、MAINの上に自然にクロスフェードします。<br>
+        2枚目専用ではなく、<strong>複数枚の全体差分をランダム切り替え</strong>できるモードです。<br>
+        白背景や明るい塗りが混ざる差分は、<strong>「暗い部分だけ重ねる」</strong>にすると自然になりやすいです。
       </div>
       <div class="mrow" style="margin-bottom:12px">
-        <span class="mlabel"><span class="dot p"></span>瞬きを有効にする</span>
+        <span class="mlabel"><span class="dot p"></span>差分モーションを有効にする</span>
         <label class="tog"><input type="checkbox" id="tog-blink" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
       </div>
-      <div class="mrow" style="margin-bottom:12px">
-        <span class="mlabel"><span class="dot p"></span>2回瞬き（ランダム）</span>
-        <label class="tog"><input type="checkbox" id="tog-double" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
+      <div class="bgrow" style="margin-bottom:12px">
+        <label for="sub-blend-mode">差分画像の重ね方</label>
+        <select id="sub-blend-mode">
+          <option value="darken" selected>暗い部分だけ重ねる（おすすめ）</option>
+          <option value="multiply">乗算</option>
+          <option value="normal">通常</option>
+        </select>
       </div>
       <div class="srow">
-        <div class="shdr"><span>瞬きの頻度</span><span class="sval" id="v-bfreq">普通</span></div>
+        <div class="shdr"><span>切り替わる頻度</span><span class="sval" id="v-bfreq">普通</span></div>
         <input type="range" id="r-bfreq" min="1" max="5" value="3">
       </div>
       <div class="srow" style="margin-top:10px">
-        <div class="shdr"><span>まぶたの速さ</span><span class="sval" id="v-bspd">普通</span></div>
+        <div class="shdr"><span>切り替えの速さ</span><span class="sval" id="v-bspd">普通</span></div>
         <input type="range" id="r-bspd" min="1" max="5" value="3">
       </div>
       <div id="bw"><div id="bb"></div></div>
@@ -146,11 +167,7 @@
           <span class="mlabel"><span class="dot g"></span>体の重心移動</span>
           <label class="tog"><input type="checkbox" id="tog-sway" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
         </div>
-        <div class="mrow">
-          <span class="mlabel"><span class="dot v"></span>口元の微動</span>
-          <label class="tog"><input type="checkbox" id="tog-mouth" checked><div class="tog-track"></div><div class="tog-thumb"></div></label>
-        </div>
-        <div class="mrow">
+                <div class="mrow">
           <span class="mlabel"><span class="dot p"></span>マウス追従</span>
           <label class="tog"><input type="checkbox" id="tog-mouse"><div class="tog-track"></div><div class="tog-thumb"></div></label>
         </div>
@@ -172,6 +189,36 @@
       </div>
     </div>
     <div class="card">
+      <div class="card-title">背景書き出し設定</div>
+      <div class="bgctrl">
+        <div class="bgrow">
+          <label for="bg-mode">背景モード</label>
+          <select id="bg-mode">
+            <option value="transparent" selected>透過</option>
+            <option value="color">単色</option>
+            <option value="image">画像</option>
+          </select>
+        </div>
+        <div class="bgrow">
+          <label for="bg-color">背景色</label>
+          <input type="color" id="bg-color" value="#ffffff">
+        </div>
+        <div class="bgrow">
+          <label>背景画像</label>
+          <button type="button" class="mini-btn" id="btn-bg-upload">画像を選ぶ</button>
+          <input type="file" id="fi-bg" accept="image/*">
+        </div>
+        <div class="bgrow">
+          <label>画像名</label>
+          <span class="bgname" id="bg-name">未選択</span>
+        </div>
+        <div class="mrow">
+          <span class="mlabel"><span class="dot g"></span>プレビューにも背景を反映</span>
+          <label class="tog"><input type="checkbox" id="tog-preview-bg"><div class="tog-track"></div><div class="tog-thumb"></div></label>
+        </div>
+      </div>
+    </div>
+    <div class="card">
       <div class="card-title">書き出し</div>
       <div class="egrid">
         <div class="ef"><label>秒数</label>
@@ -188,7 +235,18 @@
         </div>
       </div>
       <button class="btn a" id="btn-apng">✦ APNG書き出し（透過）</button>
+      <button class="btn a" id="btn-apng-bg">✦ APNG書き出し（背景あり）</button>
       <button class="btn s" id="btn-png">📷 現フレームPNG（透過）</button>
+      <button class="btn s" id="btn-png-bg">🖼 現フレームPNG（背景あり）</button>
+      <button class="btn a" id="btn-webm">🎬 数秒録画して動画保存（WebM）</button>
+      <div class="egrid" style="margin-top:10px;margin-bottom:0;">
+        <div class="ef"><label>録画秒数</label>
+          <select id="record-sec"><option value="3">3秒</option><option value="5" selected>5秒</option><option value="8">8秒</option><option value="10">10秒</option></select>
+        </div>
+        <div class="ef"><label>動画FPS</label>
+          <select id="record-fps"><option value="20">20fps</option><option value="30" selected>30fps</option></select>
+        </div>
+      </div>
       <div class="pwrap" id="pwrap">
         <div class="pbg"><div class="pfill" id="pfill"></div></div>
         <div class="plbl" id="plbl">準備中…</div>
@@ -242,11 +300,15 @@ async function encodeAPNG(frames,w,h,dn,dd,onP){
 // App
 const canvas=document.getElementById('cv');
 const ctx=canvas.getContext('2d',{alpha:true});
-let imgMain=null,imgBlink=null,CW=360,CH=540,t=0;
+let imgMain=null,imgBg=null,CW=360,CH=540,t=0;
+let subImages=[], currentSubIndex=-1;
 let mouseX=0,mouseY=0;
 
-const M={breath:true,blink:true,doubleBlink:true,sway:true,mouth:true,mouse:false,
+const M={breath:true,blink:true,sway:true,mouth:false,mouse:false,
   breathSpd:1.0,breathAmp:4,swayAmt:1.0,blinkFreq:3,blinkSpd:3};
+
+const BG={mode:'transparent',color:'#ffffff',preview:false};
+const SUB={blend:'darken'};
 
 let bState='open',bTimer=3+Math.random()*4,bAlpha=0,bCount=0;
 let mAmp=0,mTarget=0,mTimer=1;
@@ -283,21 +345,84 @@ mkUp('uz-main','fi-main','stat-main','sub-main',img=>{
   document.getElementById('status').textContent=`✓ 読み込み完了 (${CW}×${CH})`;
   updFC();
 });
-mkUp('uz-blink','fi-blink','stat-blink','sub-blink',img=>{
-  imgBlink=img;document.getElementById('status').textContent='✓ 差分画像も読み込みました！';
+function refreshSubList(){
+  const list=document.getElementById('sub-list');
+  list.innerHTML='';
+  subImages.forEach((item,idx)=>{
+    const row=document.createElement('div');
+    row.className='sub-item';
+    row.innerHTML=`<span class="sub-item-meta">DIFF ${idx+1}</span><span class="sub-item-name">${item.name}</span><button type="button">削除</button>`;
+    row.querySelector('button').addEventListener('click',()=>{
+      subImages.splice(idx,1);
+      if(currentSubIndex===idx) currentSubIndex=-1;
+      else if(currentSubIndex>idx) currentSubIndex--;
+      refreshSubList();
+      document.getElementById('status').textContent=`✓ 差分を削除しました（残り ${subImages.length} 枚）`;
+      document.getElementById('stat-blink').textContent=subImages.length?String(subImages.length):'';
+    });
+    list.appendChild(row);
+  });
+}
+(function bindSubUploader(){
+  const zone=document.getElementById('uz-add-sub');
+  const input=document.getElementById('fi-blink');
+  const loadFiles=(files)=>{
+    const arr=[...files].filter(f=>f&&f.type.startsWith('image/'));
+    if(!arr.length) return;
+    let loaded=0;
+    arr.forEach(file=>{
+      const img=new Image();
+      img.onload=()=>{
+        subImages.push({img,name:file.name});
+        loaded++;
+        if(loaded===arr.length){
+          document.getElementById('stat-blink').textContent=String(subImages.length);
+          document.getElementById('stat-blink').className='uz-stat ok';
+          zone.classList.add('loaded');
+          refreshSubList();
+          document.getElementById('status').textContent=`✓ 差分画像を ${arr.length} 枚追加しました（合計 ${subImages.length} 枚）`;
+        }
+      };
+      img.src=URL.createObjectURL(file);
+    });
+  };
+  zone.addEventListener('click',()=>input.click());
+  zone.addEventListener('dragover',e=>{e.preventDefault();zone.classList.add('drag-over');});
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+  zone.addEventListener('drop',e=>{e.preventDefault();zone.classList.remove('drag-over');loadFiles(e.dataTransfer.files);});
+  input.addEventListener('change',()=>loadFiles(input.files));
+})();
+
+document.getElementById('bg-mode').addEventListener('change',e=>BG.mode=e.target.value);
+document.getElementById('bg-color').addEventListener('input',e=>BG.color=e.target.value);
+document.getElementById('tog-preview-bg').addEventListener('change',e=>BG.preview=e.target.checked);
+document.getElementById('btn-bg-upload').addEventListener('click',()=>document.getElementById('fi-bg').click());
+document.getElementById('fi-bg').addEventListener('change',e=>{
+  const file=e.target.files[0];
+  if(!file||!file.type.startsWith('image/'))return;
+  const img=new Image();
+  img.onload=()=>{
+    imgBg=img;
+    document.getElementById('bg-name').textContent=file.name;
+    document.getElementById('status').textContent='✓ 背景画像も読み込みました！';
+  };
+  img.src=URL.createObjectURL(file);
 });
 
 // Controls
-const on=(id,k)=>document.getElementById(id).addEventListener('change',e=>M[k]=e.target.checked);
-on('tog-breath','breath');on('tog-blink','blink');on('tog-double','doubleBlink');
-on('tog-sway','sway');on('tog-mouth','mouth');on('tog-mouse','mouse');
+const byId=id=>document.getElementById(id);
+const bind=(id,ev,fn)=>{const el=byId(id); if(el) el.addEventListener(ev,fn);};
+const on=(id,k)=>bind(id,'change',e=>M[k]=e.target.checked);
+on('tog-breath','breath');on('tog-blink','blink');
+on('tog-sway','sway');on('tog-mouse','mouse');
 const DL=['','極小','小','小','中','中','中','大','大','大','極大'];
-document.getElementById('r-bspeed').addEventListener('input',e=>{M.breathSpd=e.target.value/10;document.getElementById('v-bspeed').textContent=M.breathSpd.toFixed(1)+'×';});
-document.getElementById('r-bamp').addEventListener('input',e=>{M.breathAmp=+e.target.value;document.getElementById('v-bamp').textContent=DL[e.target.value];});
-document.getElementById('r-sway').addEventListener('input',e=>{M.swayAmt=e.target.value/8;document.getElementById('v-sway').textContent=M.swayAmt.toFixed(1)+'×';});
-document.getElementById('r-bfreq').addEventListener('input',e=>{M.blinkFreq=+e.target.value;document.getElementById('v-bfreq').textContent=['','まれ','ゆっくり','普通','多め','頻繁'][e.target.value];});
-document.getElementById('r-bspd').addEventListener('input',e=>{M.blinkSpd=+e.target.value;document.getElementById('v-bspd').textContent=['','ゆっくり','やや遅め','普通','やや速め','速い'][e.target.value];});
-['e-sec','e-fps','e-scale'].forEach(id=>document.getElementById(id).addEventListener('change',updFC));
+bind('r-bspeed','input',e=>{M.breathSpd=e.target.value/10;byId('v-bspeed').textContent=M.breathSpd.toFixed(1)+'×';});
+bind('r-bamp','input',e=>{M.breathAmp=+e.target.value;byId('v-bamp').textContent=DL[e.target.value];});
+bind('r-sway','input',e=>{M.swayAmt=e.target.value/8;byId('v-sway').textContent=M.swayAmt.toFixed(1)+'×';});
+bind('r-bfreq','input',e=>{M.blinkFreq=+e.target.value;byId('v-bfreq').textContent=['','まれ','ゆっくり','普通','多め','頻繁'][e.target.value];});
+bind('r-bspd','input',e=>{M.blinkSpd=+e.target.value;byId('v-bspd').textContent=['','ゆっくり','やや遅め','普通','やや速め','速い'][e.target.value];});
+bind('sub-blend-mode','change',e=>{SUB.blend=e.target.value; document.getElementById('status').textContent='✓ 差分画像の重ね方を変更しました';});
+['e-sec','e-fps','e-scale'].forEach(id=>bind(id,'change',updFC));
 function updFC(){
   const s=+document.getElementById('e-sec').value,f=+document.getElementById('e-fps').value,sc=+document.getElementById('e-scale').value;
   document.getElementById('e-frames').textContent=`${s*f}枚 / ${Math.round(CW*sc)}×${Math.round(CH*sc)}`;
@@ -306,30 +431,34 @@ function updFC(){
 // Simulation
 function rndBW(){return [8,5.5,3.5,2,1][M.blinkFreq-1]+Math.random()*[4,3,2,1.5,1][M.blinkFreq-1];}
 
+function pickNextSub(){
+  if(!subImages.length){ currentSubIndex=-1; return; }
+  if(subImages.length===1){ currentSubIndex=0; return; }
+  let next=currentSubIndex;
+  while(next===currentSubIndex) next=Math.floor(Math.random()*subImages.length);
+  currentSubIndex=next;
+}
 function updBlink(dt){
-  if(!M.blink){bAlpha=0;return;}
-  const cT=[0.15,0.11,0.07,0.055,0.04][M.blinkSpd-1];
-  const oT=[0.20,0.14,0.09,0.07,0.05][M.blinkSpd-1];
+  if(!M.blink || !subImages.length){bAlpha=0;currentSubIndex=-1;return;}
+  const fadeT=[0.45,0.32,0.22,0.16,0.11][M.blinkSpd-1];
+  const holdT=[0.8,1.0,1.2,1.4,1.6][M.blinkFreq-1]*0.35;
   bTimer-=dt;
   switch(bState){
     case 'open':
       bAlpha=0;
-      if(bTimer<=0){bState='closing';bCount=(M.doubleBlink&&Math.random()<0.3)?2:1;}
+      if(bTimer<=0){pickNextSub();bState='closing';}
       break;
     case 'closing':
-      bAlpha=Math.min(1,bAlpha+dt/cT);
-      if(bAlpha>=1){bState='closed';bTimer=0.03+Math.random()*0.04;}
+      bAlpha=Math.min(1,bAlpha+dt/fadeT);
+      if(bAlpha>=1){bState='closed';bTimer=holdT;}
       break;
     case 'closed':
-      bAlpha=1;if(bTimer<=0)bState='opening';
+      bAlpha=1;
+      if(bTimer<=0){bState='opening';}
       break;
     case 'opening':
-      bAlpha=Math.max(0,bAlpha-dt/oT);
-      if(bAlpha<=0){
-        bCount--;
-        if(bCount>0){bState='open';bTimer=0.08+Math.random()*0.06;}
-        else{bState='open';bTimer=rndBW();}
-      }
+      bAlpha=Math.max(0,bAlpha-dt/fadeT);
+      if(bAlpha<=0){bState='open';bTimer=rndBW();}
       break;
   }
 }
@@ -342,6 +471,35 @@ function updMouth(dt){
 
 function eio(x){return x<0.5?2*x*x:-1+(4-2*x)*x;}
 
+function drawBg(tc,w,h,mode){
+  if(mode==='transparent')return;
+  if(mode==='color'){
+    tc.save();
+    tc.fillStyle=BG.color;
+    tc.fillRect(0,0,w,h);
+    tc.restore();
+    return;
+  }
+  if(mode==='image'){
+    if(imgBg){
+      const iw=imgBg.naturalWidth||imgBg.width,ih=imgBg.naturalHeight||imgBg.height;
+      const sc=Math.max(w/iw,h/ih);
+      const dw=iw*sc,dh=ih*sc,dx=(w-dw)/2,dy=(h-dh)/2;
+      tc.drawImage(imgBg,dx,dy,dw,dh);
+    }else{
+      tc.save();
+      tc.fillStyle=BG.color;
+      tc.fillRect(0,0,w,h);
+      tc.restore();
+    }
+  }
+}
+
+function getBgMode(includeBg){
+  if(!includeBg)return 'transparent';
+  return BG.mode==='transparent'?'color':BG.mode;
+}
+
 function bodyXf(){
   const sc=CH/540;
   let bY=0,bSY=1,bSX=1;
@@ -353,8 +511,9 @@ function bodyXf(){
   return{tx:sX+fX,ty:bY+fY,rot:sR,scX:bSX,scY:bSY};
 }
 
-function renderFrame(tc,w,h){
+function renderFrame(tc,w,h,includeBg=false){
   tc.clearRect(0,0,w,h);
+  drawBg(tc,w,h,getBgMode(includeBg));
   if(!imgMain)return;
   const rx=w/CW,ry=h/CH;
   const{tx,ty,rot,scX,scY}=bodyXf();
@@ -363,25 +522,15 @@ function renderFrame(tc,w,h){
   tc.translate(w/2+tx*rx,h/2+ty*ry);
   tc.rotate(rot);tc.scale(scX,scY);
   tc.drawImage(imgMain,-w/2,-h/2,w,h);
-  if(imgBlink&&bAlpha>0){tc.globalAlpha=bAlpha;tc.drawImage(imgBlink,-w/2,-h/2,w,h);}
-  tc.restore();
-  // fallback blink
-  if(!imgBlink&&M.blink&&bAlpha>0){
-    const ey=h*0.25+ty*ry,ex=w*0.5+tx*rx,lW=w*0.36,lH=h*0.045*eio(bAlpha);
-    tc.save();tc.translate(ex,ey);tc.rotate(rot);
-    const g=tc.createLinearGradient(0,-lH*.5,0,lH*.5);
-    g.addColorStop(0,`rgba(0,0,0,${bAlpha*.92})`);g.addColorStop(1,'rgba(0,0,0,0)');
-    tc.fillStyle=g;tc.beginPath();tc.ellipse(0,0,lW/2,lH*.7,0,0,Math.PI*2);tc.fill();tc.restore();
-  }
-  // mouth micro
-  if(M.mouth&&mAmp>0.02){
-    const mx=w*0.5+tx*rx,my=h*0.38+ty*ry,mw=w*0.18,mh=h*0.05,sc2=1+mAmp*0.008;
+  const currentSub = currentSubIndex>=0 ? subImages[currentSubIndex]?.img : null;
+  if(currentSub&&bAlpha>0){
     tc.save();
-    tc.beginPath();tc.ellipse(mx,my,mw,mh,rot,0,Math.PI*2);tc.clip();
-    tc.translate(mx,my);tc.scale(sc2,1+mAmp*0.003);tc.translate(-mx,-my);
-    tc.drawImage(imgMain,tx*rx,ty*ry,w,h);
+    tc.globalAlpha=bAlpha;
+    tc.globalCompositeOperation = SUB.blend === 'normal' ? 'source-over' : SUB.blend;
+    tc.drawImage(currentSub,-w/2,-h/2,w,h);
     tc.restore();
   }
+  tc.restore();
 }
 
 // Live loop
@@ -389,31 +538,42 @@ let last=0;
 function frame(ts){
   const dt=Math.min((ts-last)/1000,0.05);last=ts;t+=dt;
   updBlink(dt);updMouth(dt);
-  renderFrame(ctx,CW,CH);
+  renderFrame(ctx,CW,CH,BG.preview);
   document.getElementById('bb').style.width=(bAlpha*100)+'%';
   requestAnimationFrame(frame);
 }
 
-// APNG
-document.getElementById('btn-apng').addEventListener('click',async()=>{
+function downloadBlob(blob, filename){
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  a.style.display = 'none';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 1500);
+}
+
+// Export helpers
+async function exportAPNG(includeBg){
   if(!imgMain){document.getElementById('status').textContent='先に立ち絵を読み込んでください';return;}
   const sec=+document.getElementById('e-sec').value,fps=+document.getElementById('e-fps').value,scale=+document.getElementById('e-scale').value;
   const TF=sec*fps,sw=Math.round(CW*scale),sh=Math.round(CH*scale),dt=1/fps;
-  const btn=document.getElementById('btn-apng'),pw=document.getElementById('pwrap');
+  const btn=document.getElementById(includeBg?'btn-apng-bg':'btn-apng'),pw=document.getElementById('pwrap');
   const fill=document.getElementById('pfill'),lbl=document.getElementById('plbl');
   btn.disabled=true;pw.classList.add('show');fill.style.width='0%';
   const oc=document.createElement('canvas');oc.width=sw;oc.height=sh;
   const otx=oc.getContext('2d',{alpha:true});
-  const sv={t,bState,bTimer,bAlpha,bCount,mAmp,mTarget,mTimer};
+  const sv={t,bState,bTimer,bAlpha,bCount,mAmp,mTarget,mTimer,currentSubIndex};
   t=0;bState='open';bTimer=rndBW();bAlpha=0;bCount=0;mAmp=0;mTarget=0;mTimer=1;
   lbl.textContent='フレームを収集中…';
   const frames=[];
   for(let fi=0;fi<TF;fi++){
-    updBlink(dt);updMouth(dt);renderFrame(otx,sw,sh);
+    updBlink(dt);updMouth(dt);renderFrame(otx,sw,sh,includeBg);
     frames.push(otx.getImageData(0,0,sw,sh));t+=dt;
     if(fi%4===0){fill.style.width=((fi/TF)*50)+'%';lbl.textContent=`フレーム収集中… ${fi+1}/${TF}`;await new Promise(r=>setTimeout(r,0));}
   }
-  t=sv.t;bState=sv.bState;bTimer=sv.bTimer;bAlpha=sv.bAlpha;bCount=sv.bCount;
+  t=sv.t;bState=sv.bState;bTimer=sv.bTimer;bAlpha=sv.bAlpha;bCount=sv.bCount;currentSubIndex=sv.currentSubIndex;
   mAmp=sv.mAmp;mTarget=sv.mTarget;mTimer=sv.mTimer;
   fill.style.width='55%';lbl.textContent='PNG圧縮・エンコード中…';await new Promise(r=>setTimeout(r,20));
   try{
@@ -422,21 +582,75 @@ document.getElementById('btn-apng').addEventListener('click',async()=>{
       lbl.textContent=ph==='c'?`PNG圧縮中… ${fi+1}/${nf}`:`チャンク組立中… ${fi+1}/${nf}`;
     });
     fill.style.width='100%';lbl.textContent='✓ 完了！';
-    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([apng],{type:'image/png'}));
-    a.download=`live-portrait-${sw}x${sh}-${fps}fps.png`;a.click();
-    document.getElementById('status').textContent=`✓ APNG完成 (${sw}×${sh}, ${TF}枚)`;
+    downloadBlob(new Blob([apng],{type:'image/png'}), `live-portrait-${includeBg?'bg':'transparent'}-${sw}x${sh}-${fps}fps.png`);
+    document.getElementById('status').textContent=`✓ APNG完成 (${includeBg?'背景あり':'透過'}, ${sw}×${sh}, ${TF}枚)`;
   }catch(e){lbl.textContent='❌ エラー: '+e.message;console.error(e);}
   btn.disabled=false;setTimeout(()=>pw.classList.remove('show'),4000);
-});
+}
 
-// PNG
-document.getElementById('btn-png').addEventListener('click',()=>{
+function exportPNG(includeBg){
   if(!imgMain){document.getElementById('status').textContent='先に読み込んでください';return;}
-  canvas.toBlob(blob=>{
-    const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='frame.png';a.click();
-    document.getElementById('status').textContent='✓ PNG保存完了（透過）';
+  const out=document.createElement('canvas');
+  out.width=CW;out.height=CH;
+  const otx=out.getContext('2d',{alpha:true});
+  renderFrame(otx,CW,CH,includeBg);
+  out.toBlob(blob=>{
+    downloadBlob(blob, includeBg?'frame-bg.png':'frame-transparent.png');
+    document.getElementById('status').textContent=`✓ PNG保存完了（${includeBg?'背景あり':'透過'}）`;
   },'image/png');
-});
+}
+
+
+async function exportWebM(){
+  if(!imgMain){document.getElementById('status').textContent='先に立ち絵を読み込んでください';return;}
+  if(!canvas.captureStream || typeof MediaRecorder==='undefined'){
+    document.getElementById('status').textContent='このブラウザは動画録画に対応していません';
+    return;
+  }
+  const sec=+document.getElementById('record-sec').value;
+  const fps=+document.getElementById('record-fps').value;
+  const btn=document.getElementById('btn-webm');
+  const pw=document.getElementById('pwrap');
+  const fill=document.getElementById('pfill'),lbl=document.getElementById('plbl');
+  btn.disabled=true;pw.classList.add('show');fill.style.width='0%';lbl.textContent='録画準備中…';
+  const sv={t,bState,bTimer,bAlpha,bCount,mAmp,mTarget,mTimer,currentSubIndex};
+  t=0;bState='open';bTimer=rndBW();bAlpha=0;bCount=0;mAmp=0;mTarget=0;mTimer=1;currentSubIndex=-1;
+  const stream=canvas.captureStream(fps);
+  let mimeType='';
+  for(const c of ['video/webm;codecs=vp9','video/webm;codecs=vp8','video/webm']){
+    if(MediaRecorder.isTypeSupported(c)){ mimeType=c; break; }
+  }
+  const recorder=new MediaRecorder(stream, mimeType?{mimeType}:undefined);
+  const chunks=[];
+  recorder.ondataavailable=e=>{ if(e.data&&e.data.size) chunks.push(e.data); };
+  const stopped = new Promise((resolve,reject)=>{
+    recorder.onerror=e=>reject(e.error||new Error('録画に失敗しました'));
+    recorder.onstop=resolve;
+  });
+  recorder.start(200);
+  const start=performance.now();
+  while((performance.now()-start) < sec*1000){
+    const ratio=(performance.now()-start)/(sec*1000);
+    fill.style.width=(ratio*100)+'%';
+    lbl.textContent=`録画中… ${Math.min(sec, ((performance.now()-start)/1000)).toFixed(1)} / ${sec} 秒`;
+    await new Promise(r=>setTimeout(r,80));
+  }
+  recorder.stop();
+  await stopped;
+  const blob=new Blob(chunks,{type:recorder.mimeType||'video/webm'});
+  downloadBlob(blob, `live-portrait-preview-${CW}x${CH}-${sec}s.webm`);
+  t=sv.t;bState=sv.bState;bTimer=sv.bTimer;bAlpha=sv.bAlpha;bCount=sv.bCount;currentSubIndex=sv.currentSubIndex;
+  mAmp=sv.mAmp;mTarget=sv.mTarget;mTimer=sv.mTimer;
+  fill.style.width='100%';lbl.textContent='✓ 動画保存完了！';
+  document.getElementById('status').textContent=`✓ WebM保存完了（${sec}秒）`;
+  btn.disabled=false;setTimeout(()=>pw.classList.remove('show'),3000);
+}
+
+document.getElementById('btn-apng').addEventListener('click',()=>exportAPNG(false));
+document.getElementById('btn-apng-bg').addEventListener('click',()=>exportAPNG(true));
+document.getElementById('btn-png').addEventListener('click',()=>exportPNG(false));
+document.getElementById('btn-png-bg').addEventListener('click',()=>exportPNG(true));
+document.getElementById('btn-webm').addEventListener('click',()=>exportWebM());
 
 canvas.width=360;canvas.height=540;
 updFC();
