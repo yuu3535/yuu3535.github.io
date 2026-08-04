@@ -889,6 +889,15 @@
   /* ---------- 物理 ---------- */
   const G = .5, DAMP = .985, VMAX = 18, SOLVE = 6;
 
+  /* 詰まりをほどくための跳ね返り（4-1）。段ごとに「重なりを解消したとき、
+     元の速さより余分に出してよい速さ」を決める。小さいほど跳ぶ。
+     打ち上がる高さの目安は v*v/(2*G) ＝ v*v ピクセル（盤面の高さは560）。
+     大きい段を0にしてあるのは、跳ねさせても山が崩れるだけで、
+     詰まるのはたいてい隙間に取り残された小さい想いの方だから。
+     遊んだ感じで調整してよい。ここを全部0にすると跳ねは完全に消える */
+  const BOUNCE = [12, 10, 8, 6, 4, 2.5, 1.5, 0, 0, 0, 0];
+  const RING_BOUNCE = 8;              // 指輪は小さいので跳ねる側
+
   /* 集合体どうしの接触。最も深く重なっている円の組だけを返す。
      ひとつの相手に対して接点はひとつ、と割り切る（SOLVE の反復で収束する）。
      parts を持たない相手は、半径 r の円ひとつとして扱う */
@@ -985,8 +994,21 @@
     for (const b of bubbles){
       if (b.gone) continue;
       const fall = b.vy;                        // 解決前の落下速度
+      const side = b.vx;
       b.vx = (b.x - b.px) * DAMP;
       b.vy = (b.y - b.py) * DAMP;
+
+      // 重なりを解消した「押し出し」も位置の差なので、そのままだと速度に化けて
+      // 吹き飛ぶ（4-1）。ぶつかって止まるのは速さが**減る**側なので、
+      // 増える方向だけに上限をかける。落ちて止まる・押されて転がるは素通り。
+      // 上限は「元の速さ ＋ BOUNCE」。この余白が詰まりをほどく跳ねになる。
+      const inS = side * side + fall * fall;
+      const outS = b.vx * b.vx + b.vy * b.vy;
+      const cap = Math.sqrt(inS) + (b.lv < 0 ? RING_BOUNCE : BOUNCE[b.lv]);
+      if (outS > cap * cap && outS > 1e-9){
+        const k = cap / Math.sqrt(outS);
+        b.vx *= k; b.vy *= k;
+      }
       if (b.touch) b.vx *= .86;
       if (Math.abs(b.vx) < .02) b.vx = 0;
       if (Math.abs(b.vy) < .02) b.vy = 0;
