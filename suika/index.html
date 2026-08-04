@@ -1,0 +1,1209 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>純愛スイカゲーム</title>
+<style>
+  :root{
+    --ink:#14101a;
+    --paper:#f6efdf;
+    --brass:#a98b5a;
+    --seal:#8e1c2c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #3a2338 0%, transparent 60%),
+      linear-gradient(180deg,#1a1220 0%, #14101a 55%, #0e0b13 100%);
+    color:var(--paper);
+    font-family:"Hiragino Mincho ProN","Yu Mincho",YuMincho,"Noto Serif JP",serif;
+    display:flex;flex-direction:column;align-items:center;
+    min-height:100%;
+    padding:10px 10px 18px;
+    overflow-x:hidden;
+  }
+  header{
+    width:100%;max-width:440px;
+    display:flex;align-items:baseline;justify-content:space-between;
+    padding:4px 2px 8px;
+  }
+  h1{margin:0;font-size:17px;font-weight:400;letter-spacing:.28em}
+  h1 small{display:block;font-size:9px;letter-spacing:.4em;color:var(--brass);margin-top:4px}
+  .score{text-align:right;line-height:1.15}
+  .score b{font-size:22px;font-weight:400;letter-spacing:.05em}
+  .score span{display:block;font-size:9px;letter-spacing:.3em;color:var(--brass)}
+
+  .mute.beat{color:#e08b9a;border-color:rgba(224,139,154,.7);animation:mb 1.1s ease-in-out infinite}
+  @keyframes mb{0%,100%{transform:scale(1)}12%{transform:scale(1.16)}26%{transform:scale(1.02)}38%{transform:scale(1.10)}}
+  .ringbtn{
+    top:46px !important;position:absolute;overflow:hidden;
+    font-size:14px;line-height:1;padding-top:1px;
+  }
+  .ringbtn.off{
+    color:#b9a9c0;border-color:rgba(140,125,150,.4);
+    filter:grayscale(1);opacity:.55;      /* 絵文字は色が効かないので褪せさせる */
+  }
+  .ringbtn.off::after{
+    content:"";position:absolute;left:4px;right:4px;top:50%;
+    height:1px;background:currentColor;transform:rotate(-38deg);
+  }
+  .mute{
+    position:absolute;top:10px;right:10px;
+    width:30px;height:30px;padding:0;font-size:13px;line-height:1;
+    border-radius:50%;border:1px solid rgba(169,139,90,.5);
+    color:var(--brass);background:rgba(20,16,26,.5);letter-spacing:0;
+  }
+  .stage{position:relative;width:100%;max-width:440px}
+  canvas{
+    display:block;width:100%;height:auto;
+    border:1px solid rgba(169,139,90,.45);
+    border-radius:3px;
+    background:linear-gradient(180deg,#2c1a33 0%,#1a1020 100%);
+    box-shadow:0 0 0 1px rgba(0,0,0,.6), 0 10px 40px -18px #000;
+    touch-action:none;cursor:crosshair;
+  }
+
+  .rail{width:100%;max-width:440px;margin-top:9px;display:flex;gap:9px;align-items:stretch}
+  .next{
+    flex:0 0 96px;border:1px solid rgba(169,139,90,.35);border-radius:3px;
+    padding:6px 8px;background:rgba(255,255,255,.02);
+  }
+  .next em{font-style:normal;font-size:8px;letter-spacing:.3em;color:var(--brass);display:block;transition:color .3s}
+  .next.gift{
+    border-color:rgba(224,139,154,.85);
+    background:rgba(224,139,154,.10);
+    animation:giftIn .55s ease both;
+  }
+  .next.gift em{color:#e08b9a}
+  .next.ring{
+    border-color:rgba(233,201,107,.9);
+    background:rgba(233,201,107,.10);
+    animation:giftIn .55s ease both;
+  }
+  .next.ring em{color:#e9c96b}
+  .next.ring p{color:#f5e2ae;letter-spacing:.2em}
+  .next.gift p{color:#f3c9b4}
+  @keyframes giftIn{
+    0%{transform:scale(.94);background:rgba(224,139,154,.42)}
+    100%{transform:none;background:rgba(224,139,154,.10)}
+  }
+  .next p{margin:4px 0 0;font-size:11px;line-height:1.35;opacity:.9}
+  .log{
+    flex:1;border:1px solid rgba(169,139,90,.35);border-radius:3px;
+    padding:6px 9px;background:rgba(255,255,255,.02);
+    height:62px;overflow:hidden;
+  }
+  .log em{font-style:normal;font-size:8px;letter-spacing:.3em;color:var(--brass);display:block;margin-bottom:3px}
+  .log ul{margin:0;padding:0;list-style:none}
+  .log li{font-size:11px;line-height:1.45;opacity:.85;animation:slip .5s ease both}
+  .log li:first-child{color:#f3c9b4;opacity:1}
+  @keyframes slip{from{opacity:0;transform:translateY(-5px)}to{opacity:.85;transform:none}}
+
+  .hint{max-width:440px;width:100%;margin-top:8px;font-size:10px;line-height:1.7;color:#8d7f92;letter-spacing:.05em}
+  .hint b{color:var(--brass);font-weight:400}
+
+  .over{
+    position:absolute;inset:0;display:none;flex-direction:column;
+    align-items:center;justify-content:center;gap:14px;
+    background:rgba(12,8,16,.86);backdrop-filter:blur(3px);border-radius:3px;
+    padding:24px;text-align:center;
+  }
+  .over.show{display:flex;animation:fade .5s ease both}
+  .over.warm{background:rgba(58,30,42,.88)}
+  .over.warm .seal{background:#c9718b;box-shadow:0 4px 18px -4px #000, inset 0 -3px 8px rgba(0,0,0,.3)}
+  .over.warm p{color:#e6d3d8}
+  @keyframes fade{from{opacity:0}to{opacity:1}}
+  .over p{margin:0;font-size:12.5px;line-height:2;letter-spacing:.08em;color:#cbbcc6}
+  .over .head{
+    display:block;font-size:16px;letter-spacing:.16em;color:var(--paper);
+    margin-bottom:12px;
+  }
+  .over .seal{
+    width:54px;height:54px;border-radius:50%;background:var(--seal);
+    display:flex;align-items:center;justify-content:center;font-size:19px;
+    box-shadow:0 4px 14px -4px #000, inset 0 -3px 8px rgba(0,0,0,.4);
+  }
+  button{
+    font-family:inherit;background:transparent;color:var(--paper);
+    border:1px solid var(--brass);border-radius:2px;
+    padding:9px 26px;font-size:12px;letter-spacing:.3em;cursor:pointer;
+    transition:background .2s,color .2s;
+  }
+  button:hover,button:focus-visible{background:var(--brass);color:#14101a;outline:none}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>純愛スイカゲーム<small>彼の頭の中で、積み上がっていくもの</small></h1>
+  <div class="score"><b id="score">0</b><span>執着</span></div>
+</header>
+
+<div class="stage">
+  <canvas id="cv"></canvas>
+  <button id="mute" class="mute" aria-label="音：すべて" title="音：すべて">♪</button>
+  <button id="ringBtn" class="mute ringbtn" aria-label="指輪：あり" title="指輪：あり（やさしい）">💍</button>
+  <div class="over" id="over">
+    <div class="seal" id="seal">&hearts;</div>
+    <p id="overText"></p>
+    <button id="retry">はじめから</button>
+  </div>
+</div>
+
+<div class="rail">
+  <div class="next"><em>次に浮かぶ</em><p id="nextText">…</p></div>
+  <div class="log"><em>内心</em><ul id="logList"></ul></div>
+</div>
+
+<p class="hint">この四角は、彼の頭の中。点線は、彼が自分で引いた線。<br><b>操作</b>　左右に動かして、タップ／クリックで想いを落とす。同じ想いが触れ合うと、ひとつの、もっと重い想いになる。<br><b>線を越えたら</b>　彼は考えるのをやめて、行動に移る。<br><b>右上</b>　♪で音（すべて／心音だけ／なし）、💍で指輪の有無を切り替え。指輪はどの想いとも結ばれる。</p>
+
+<script>
+(() => {
+  "use strict";
+  const TAU = Math.PI * 2;
+
+  /* ---------- 言葉の階梯 ----------
+     sh: round / wobble / cloud / heart / heart2 / spike / thorn
+     SHAPE_MODE を "round" にすると全部まるになる                      */
+  const SHAPE_MODE = "grow";
+
+  const TIERS = [
+    {r:19,  f:10, t:"今日も",                     bg:"#f6efdf", fg:"#2a1a20", s:1,  sh:"round"},
+    {r:25,  f:11, t:"洗濯物が、乾いた",           bg:"#f2e6ce", fg:"#2a1a20", s:3,  sh:"round"},
+    {r:32,  f:12, t:"牛乳、切らしてた",           bg:"#efdcba", fg:"#2a1a20", s:6,  sh:"round"},
+    {r:40,  f:13, t:"その靴、替えどきだ",         bg:"#ecceaa", fg:"#2a1a20", s:10, sh:"wobble"},
+    {r:49,  f:14, t:"帰りが、いつもより遅い",     bg:"#e8bb98", fg:"#2a1a20", s:15, sh:"wobble"},
+    {r:58,  f:15, t:"柔軟剤、同じのにした",       bg:"#e1a289", fg:"#2a1a20", s:21, sh:"cloud"},
+    {r:69,  f:16, t:"捨てたレシート、預かった",   bg:"#d6857c", fg:"#2a1015", s:28, sh:"cloud"},
+    {r:80,  f:16, t:"まだ、話しかけていない",     bg:"#c46873", fg:"#fbf2e6", s:36, sh:"heart"},
+    {r:92,  f:17, t:"指輪は、削り出しで作る",   bg:"#ac4d6a", fg:"#fbf2e6", s:45, sh:"heart"},
+    {r:105, f:17, t:"三年後の食卓が、見える",     bg:"#8c375e", fg:"#fbf2e6", s:55, sh:"heart2"},
+    {r:120, f:18, t:"お迎えの支度は、出来た",     bg:"#67204c", fg:"#f7d9c6", s:66, sh:"heart2"}
+  ];
+  const MAX = TIERS.length - 1;
+
+  /* 指輪。どの想いとも結ばれる。lv は -1 で表す */
+  const RING_LV = -1, RING_IDX = TIERS.length, RING_HOT = TIERS.length + 1;
+  // 細身のプラチナ。中央にアレキサンドライト、両脇に小さなダイヤ。
+  // 石は彼が平静なら瞳と同じ深い緑、高ぶると赤紫に変わる。
+  const RING = { r:27, f:10, t:"", bg:"#c9cdd6", fg:"#3a3f49", s:0, sh:"ring",
+                 stone:["#dff3e6", "#2f7a5e", "#14402f"] };
+  const RING_N = { r:27, f:10, t:"", bg:"#c9cdd6", fg:"#3a3f49", s:0, sh:"ring",
+                 stone:["#f4d9e8", "#9c3a6b", "#4a1636"] };
+  const T_ = lv => (lv < 0 ? RING : TIERS[lv]);
+  const BEAT_FROM = 9;                   // この段階から鼓動する
+
+  /* ---------- 盤面 ---------- */
+  const W = 400, H = 560, WALL = 8, LINE = 96;
+  const L = WALL, R = W - WALL, B = H - WALL;
+  const OVER_LIMIT = 110;
+
+  const cv = document.getElementById("cv");
+  const ctx = cv.getContext("2d");
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+  cv.style.aspectRatio = W + "/" + H;
+  ctx.scale(dpr, dpr);
+
+  const $score = document.getElementById("score");
+  const $next  = document.getElementById("nextText");
+  const $log   = document.getElementById("logList");
+  const $over  = document.getElementById("over");
+  const $overT = document.getElementById("overText");
+  const $mute  = document.getElementById("mute");
+  const $nextBox   = document.querySelector(".next");
+  const $nextLabel = document.querySelector(".next em");
+  const $ringBtn   = document.getElementById("ringBtn");
+
+  const rnd = (a,b) => a + Math.random() * (b - a);
+  function shade(hex, amt){
+    const n = parseInt(hex.slice(1), 16);
+    const c = [n >> 16, (n >> 8) & 255, n & 255].map(v => Math.max(0, Math.min(255, v + amt)));
+    return "rgb(" + c[0] + "," + c[1] + "," + c[2] + ")";
+  }
+
+  /* ---------- 形 ---------- */
+  function heartSub(c, x, y, s){
+    c.moveTo(x, y + s*.92);
+    c.bezierCurveTo(x - s*1.42, y - s*.10, x - s*.72, y - s*1.16, x, y - s*.42);
+    c.bezierCurveTo(x + s*.72, y - s*1.16, x + s*1.42, y - s*.10, x, y + s*.92);
+    c.closePath();
+  }
+
+  function shapePath(c, x, y, r, sh){
+    c.beginPath();
+    if (sh === "round"){
+      c.arc(x, y, r, 0, TAU); c.closePath();
+    } else if (sh === "wobble"){
+      const n = 44;
+      for (let i = 0; i <= n; i++){
+        const a = i / n * TAU;
+        const rr = r * (1 + .045*Math.sin(a*3) + .028*Math.sin(a*5 + 1.1));
+        const px = x + Math.cos(a)*rr, py = y + Math.sin(a)*rr;
+        i ? c.lineTo(px, py) : c.moveTo(px, py);
+      }
+      c.closePath();
+    } else if (sh === "cloud"){
+      // 隣り合うふくらみの交点で弧を切る（内側に線が走らないように）
+      const n = 9, br = r * .34, cr = r - br;
+      const half = Math.PI / n;
+      const dd = 2 * cr * Math.sin(half);                 // 中心間距離
+      const th = Math.acos(Math.min(1, (dd/2) / br));     // 交点までの開き
+      const span = Math.PI/2 + half - th;
+      for (let i = 0; i < n; i++){
+        const a = i / n * TAU;
+        c.arc(x + Math.cos(a)*cr, y + Math.sin(a)*cr, br, a - span, a + span);
+      }
+      c.closePath();
+    } else if (sh === "ring"){
+      c.arc(x, y, r * .87, 0, TAU);                 // 金の輪
+      c.moveTo(x + r * .635, y);
+      c.arc(x, y, r * .635, 0, TAU, true);          // 逆回りで穴を抜く
+    } else if (sh === "heart"){
+      heartSub(c, x, y - r*.05, r*1.00);
+    } else if (sh === "heart2"){
+      heartSub(c, x - r*.10, y + r*.06, r*.96);   // 主
+      heartSub(c, x + r*.46, y - r*.42, r*.37);   // 添え
+    } else {                                       // spike / thorn
+      const deep = sh === "thorn" ? .64 : .76;
+      const n = sh === "thorn" ? 26 : 20;
+      for (let i = 0; i < n*2; i++){
+        const a = i / (n*2) * TAU - Math.PI/2;
+        const rr = (i % 2) ? r * deep : r;
+        const px = x + Math.cos(a)*rr, py = y + Math.sin(a)*rr;
+        i ? c.lineTo(px, py) : c.moveTo(px, py);
+      }
+      c.closePath();
+    }
+  }
+
+  function tailPath(c, x, y, r, sh){
+    c.beginPath();
+    if (sh === "ring") return;                      // 指輪にしっぽは要らない
+    if (sh === "cloud"){
+      c.arc(x - r*.10, y + r*.94, r*.13, 0, TAU);
+      c.moveTo(x + r*.24, y + r*1.16);
+      c.arc(x + r*.16, y + r*1.16, r*.08, 0, TAU);
+    } else if (sh === "heart" || sh === "heart2"){
+      heartSub(c, x - r*.06, y + r*1.02, r*.17);   // 小さなハートが零れる
+      heartSub(c, x + r*.20, y + r*1.30, r*.10);
+    } else if (sh === "spike" || sh === "thorn"){
+      c.moveTo(x - r*.20, y + r*.80);
+      c.lineTo(x + r*.06, y + r*1.44);
+      c.lineTo(x + r*.20, y + r*.76);
+      c.closePath();
+    } else {
+      c.moveTo(x - r*.30, y + r*.80);
+      c.lineTo(x - r*.02, y + r*1.26);
+      c.lineTo(x + r*.24, y + r*.78);
+      c.closePath();
+    }
+  }
+
+  const INNER = { round:.86, wobble:.84, cloud:.70, heart:.64, heart2:.60, spike:.74, thorn:.62, ring:.40 };
+  const TEXT_DY = { heart:-.06, heart2:.03 };
+  const TEXT_DX = { heart2:-.10 };
+  /* 当たり判定の半径。外接円より内側にある形は詰めて、隙間（膜）を減らす */
+  const HIT = { round:1, wobble:.995, cloud:.955, heart:.78, heart2:.78, spike:.92, thorn:.86, ring:.88 };
+
+  function wrap(text, per){
+    const out = [];
+    for (let i = 0; i < text.length; i += per) out.push(text.slice(i, i + per));
+    return out;
+  }
+
+  /* ---------- 吹き出しを1回だけ焼く ---------- */
+  const SPRITES = [];
+  function bake(){
+    const ALL = TIERS.concat([RING, RING_N]);
+    for (let lv = 0; lv < ALL.length; lv++){
+      const T = ALL[lv];
+      const sh = SHAPE_MODE === "round" ? "round" : T.sh;
+      const r = T.r;
+      const padX = r*.45, padTop = r*.45, padBot = r*.75;
+      const w = r*2 + padX*2, h = r*2 + padTop + padBot;
+      const off = document.createElement("canvas");
+      off.width = Math.ceil(w * dpr); off.height = Math.ceil(h * dpr);
+      const c = off.getContext("2d");
+      c.scale(dpr, dpr);
+      const cx = padX + r, cy = padTop + r;
+
+      // しっぽ（輪郭線なし・本体の下から出る）
+      c.fillStyle = shade(T.bg, -14);
+      tailPath(c, cx, cy, r, sh);
+      c.fill();
+
+      // 本体（影とグラデはここで1回だけ）
+      let g;
+      if (sh === "ring"){                          // プラチナは白く硬く光る
+        g = c.createLinearGradient(cx - r*.75, cy - r*.75, cx + r*.7, cy + r*.8);
+        g.addColorStop(0,   "#f6f8fb");
+        g.addColorStop(.28, "#c4c9d3");
+        g.addColorStop(.54, "#868b96");
+        g.addColorStop(.76, "#e2e6ed");
+        g.addColorStop(1,   "#767b86");
+      } else {
+        g = c.createLinearGradient(cx, cy - r, cx, cy + r);
+        g.addColorStop(0, "#ffffff");
+        g.addColorStop(.22, T.bg);
+        g.addColorStop(1, shade(T.bg, -18));
+      }
+      c.save();
+      c.shadowColor = "rgba(0,0,0,.5)";
+      c.shadowBlur = 10; c.shadowOffsetY = 4;
+      shapePath(c, cx, cy, r, sh);
+      c.fillStyle = g;
+      c.fill();
+      c.restore();
+      c.lineWidth = 1;
+      c.strokeStyle = sh === "ring" ? "rgba(42,48,60,.55)" : "rgba(42,26,32,.30)";
+      c.stroke();
+
+      // 言葉：実際に測って、はみ出すならフォントを詰める
+      const inner = r * (INNER[sh] || .84);
+      const face = '"Hiragino Mincho ProN","Yu Mincho",serif';
+      let f = T.f, lines = [], lh = 0;
+      for (let k = 0; k < 9; k++){
+        c.font = f + "px " + face;
+        lh = f * 1.32;
+        lines = wrap(T.t, Math.max(3, Math.round(inner * 1.9 / f)));
+        let fits = true;
+        for (let i = 0; i < lines.length; i++){
+          const y = (i - (lines.length - 1) / 2) * lh;
+          const edge = Math.abs(y) + f * .56;
+          const room = edge < inner ? 2 * Math.sqrt(inner*inner - edge*edge) : 0;
+          if (c.measureText(lines[i]).width > room){ fits = false; break; }
+        }
+        if (fits) break;
+        f *= .94;
+      }
+      c.fillStyle = T.fg;
+      c.textAlign = "center"; c.textBaseline = "middle";
+      const tx = cx + r * (TEXT_DX[sh] || 0);
+      const y0 = cy + r * (TEXT_DY[sh] || 0) - (lines.length - 1) * lh / 2;
+      for (let i = 0; i < lines.length; i++) c.fillText(lines[i], tx, y0 + i * lh);
+
+      if (sh === "ring"){
+        const gem = (gx, gy, st, hi, mid, lo) => {
+          c.beginPath();                            // 台座
+          c.moveTo(gx - st * .48, gy + st * .10);
+          c.lineTo(gx + st * .48, gy + st * .10);
+          c.lineTo(gx, gy + st * .92);
+          c.closePath();
+          c.fillStyle = "#9ba0aa"; c.fill();
+          c.beginPath();                            // 石
+          c.moveTo(gx, gy - st * .78);
+          c.lineTo(gx + st * .62, gy + st * .08);
+          c.lineTo(gx, gy + st * .80);
+          c.lineTo(gx - st * .62, gy + st * .08);
+          c.closePath();
+          const sg = c.createLinearGradient(gx - st, gy - st, gx + st, gy + st);
+          sg.addColorStop(0, hi); sg.addColorStop(.42, mid); sg.addColorStop(1, lo);
+          c.fillStyle = sg; c.fill();
+          c.lineWidth = .6; c.strokeStyle = "rgba(30,34,42,.5)"; c.stroke();
+          c.beginPath();                            // ひとすじの輝き
+          c.moveTo(gx - st * .18, gy - st * .38);
+          c.lineTo(gx + st * .12, gy + st * .06);
+          c.strokeStyle = "rgba(255,255,255,.9)"; c.lineWidth = .8; c.stroke();
+        };
+        const S = T.stone;
+        const ro = r * .755;
+        for (const deg of [-27, 27]){               // 両脇の小さなダイヤ
+          const a = (-90 + deg) * Math.PI / 180;
+          gem(cx + Math.cos(a) * ro, cy + Math.sin(a) * ro, r * .125,
+              "#ffffff", "#eef1f4", "#b8bfc7");
+        }
+        gem(cx, cy - r * .90, r * .26, S[0], S[1], S[2]);   // 中央の一石
+      }
+      SPRITES.push({ cv:off, w, h, ox:cx, oy:cy });
+    }
+  }
+
+  /* 背景（罫線）も焼いておく */
+  let bgSprite = null;
+  function bakeBg(){
+    const off = document.createElement("canvas");
+    off.width = Math.round(W * dpr); off.height = Math.round(H * dpr);
+    const c = off.getContext("2d");
+    c.scale(dpr, dpr);
+    c.strokeStyle = "rgba(169,139,90,.055)";
+    c.lineWidth = 1;
+    for (let y = LINE + 26; y < B; y += 26){
+      c.beginPath(); c.moveTo(L, y + .5); c.lineTo(R, y + .5); c.stroke();
+    }
+    bgSprite = off;
+  }
+
+  /* ---------- 音（すべてその場で合成。外部ファイルなし） ---------- */
+  let ac = null, master = null, musicBus = null, unease = null, schedTimer = null;
+  let nextNote = 0, stepIdx = 0;
+  let audioMode = 0;                   // 0=すべて 1=心音だけ 2=無音
+
+  function initAudio(){
+    if (ac || audioMode === 2) return;
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return;
+    ac = new AC();
+    master = ac.createGain();
+    master.gain.value = .8;
+    master.connect(ac.destination);
+    musicBus = ac.createGain();                 // 曲だけ切れるように分けておく
+    musicBus.gain.value = audioMode === 0 ? 1 : 0;
+    musicBus.connect(master);
+    startUnease();
+    startMusic();
+  }
+
+  function env(node, t, atk, dur, vol){
+    const g = ac.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(vol, t + atk);
+    g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    node.connect(g);
+    return g;
+  }
+
+  // 単音。at を渡すと未来の時刻に予約できる
+  function blip(freq, dur, vol, type, slide, at, dest){
+    if (!ac) return;
+    const t = at || ac.currentTime;
+    const o = ac.createOscillator();
+    o.type = type || "sine";
+    o.frequency.setValueAtTime(freq, t);
+    if (slide && slide !== 1) o.frequency.exponentialRampToValueAtTime(Math.max(20, freq * slide), t + dur);
+    env(o, t, .006, dur, vol).connect(dest || master);
+    o.start(t); o.stop(t + dur + .03);
+  }
+
+  // 鐘。倍音を重ねて余韻を出す
+  function bell(freq, vol, dur, at, dest){
+    if (!ac) return;
+    const t = at || ac.currentTime;
+    const parts = [[1, 1], [2.01, .3], [3.02, .12]];
+    for (const [m, a] of parts){
+      const o = ac.createOscillator();
+      o.type = "sine";
+      o.frequency.setValueAtTime(freq * m, t);
+      env(o, t, .008, dur * (m > 2 ? .5 : 1), vol * a).connect(dest || master);
+      o.start(t); o.stop(t + dur + .05);
+    }
+  }
+
+  /* --- 曲。明るい王道進行が、育つほど帰る場所を失っていく --- */
+  const CH = {
+    F : {root:174.61, n:[349.23, 440.00, 523.25, 659.25]},  // Fmaj7
+    G : {root:196.00, n:[391.99, 493.88, 587.33, 783.99]},  // G
+    Em: {root:164.81, n:[329.63, 391.99, 493.88, 659.25]},  // Em
+    Am: {root:220.00, n:[440.00, 523.25, 659.25, 880.00]},  // Am
+    Ab: {root:207.65, n:[415.30, 523.25, 622.25, 783.99]},  // A♭maj7（半音ずれる）
+    E7: {root:164.81, n:[329.63, 415.30, 493.88, 622.25]}   // E7（明るさに影）
+  };
+  const ARP = [0, 1, 2, 3, 2, 3, 1, 2];
+
+  function progression(){
+    const p = [CH.F, CH.G, CH.Em, CH.Am];
+    if (best >= 7) p[3] = CH.Ab;      // 戻ってくるはずの和音が、半音ずれる
+    if (best >= 9) p[1] = CH.E7;      // 明るいところに影が差す
+    return p;
+  }
+  function stepDur(){
+    const bpm = 100 + (best >= 7 ? 6 : 0) + (resolved ? 10 : 0);
+    return 30 / bpm;                  // 8分音符
+  }
+
+  function playStep(i, t){
+    const prog = progression(), bar = (i >> 3) % 4, s = i & 7, ch = prog[bar];
+    const M = musicBus;
+    bell(ch.n[ARP[s]], .036, .95, t, M);                       // オルゴール
+    if (s === 0) blip(ch.root, .55, .05, "sine", 1, t, M);     // ベース
+    if (s === 4) blip(ch.root * 1.5, .30, .026, "sine", 1, t, M);
+    if (s & 1)   blip(5400, .014, .005, "sine", 1, t, M);      // ごく軽い刻み
+    if (resolved && (s === 0 || s === 4)) blip(64, .18, .10, "sine", .6, t, M);
+  }
+
+  function scheduler(){
+    if (!ac || ac.state !== "running") return;
+    while (nextNote < ac.currentTime + .25){
+      if (!dead) playStep(stepIdx, nextNote);
+      nextNote += stepDur();
+      stepIdx++;
+    }
+  }
+  function startMusic(){
+    nextNote = ac.currentTime + .12; stepIdx = 0;
+    if (!schedTimer) schedTimer = setInterval(scheduler, 40);
+  }
+
+  /* --- 下から滲んでくるもの。段階が上がるほど濃くなる --- */
+  function startUnease(){
+    unease = ac.createGain();
+    unease.gain.value = 0;
+    const lp = ac.createBiquadFilter();
+    lp.type = "lowpass"; lp.frequency.value = 260;
+    unease.connect(lp); lp.connect(master);
+    for (const f of [55, 55.35]){
+      const o = ac.createOscillator();
+      o.type = "sawtooth"; o.frequency.value = f;
+      const g = ac.createGain(); g.gain.value = .3;
+      o.connect(g); g.connect(unease); o.start();
+    }
+  }
+  function updateMood(){
+    if (!ac || !unease) return;
+    const lvl = best >= 9 ? .05 : best >= 7 ? .03 : best >= 5 ? .012 : 0;
+    unease.gain.setTargetAtTime(lvl, ac.currentTime, 2.5);
+  }
+
+  /* 場面ごとの音 */
+  const seDrop = lv => blip(300 - lv * 9, .10, .09, "triangle", .7);
+  let lastLand = 0;
+  function seLand(lv){
+    if (!ac) return;
+    const t = ac.currentTime;
+    if (t - lastLand < .05) return;             // 同時着地は間引く
+    lastLand = t;
+    blip(150 - lv * 7, .07, .04, "sine", .8);
+  }
+  function seMerge(lv){
+    const f = 880 * Math.pow(.87, lv);          // 育つほど低く、長く
+    bell(f, .085 + lv * .005, 1.0 + lv * .1);
+    bell(f * 1.5, .04, .7);                     // 5度を重ねて、うれしい響きに
+    if (lv >= 8) blip(f * .5, .5, .045, "triangle");
+  }
+  function seResolve(){
+    if (!ac) return;
+    bell(261.63, .12, 3.4);
+    bell(415.30, .09, 3.4);                     // 幸福な和音に、半音を差し込む
+    updateMood();
+  }
+  function seThump(t){
+    if (!ac) return;
+    const v = .04 + t * .13;
+    blip(62, .17, v, "sine", .55);
+    const gap = .17 - t * .05;
+    blip(54, .21, v * .72, "sine", .55, ac.currentTime + gap);
+  }
+  function seRing(){
+    if (!ac) return;
+    bell(1567.98, .085, 2.4);                       // 高く澄んだ音
+    bell(2093,    .04,  1.8);
+  }
+  function seGift(){
+    if (!ac) return;
+    bell(1046.5, .11, 1.5);
+    bell(659.25, .09, 1.5);
+    blip(98, .7, .09, "triangle", .8);
+  }
+  function seWarn(d){
+    blip(660 + d * 220, .10, .035 + d * .045, "triangle", 1.5);
+  }
+  function seOver(){
+    if (!ac) return;
+    blip(87, 1.8, .13, "sawtooth", .5);
+    if (unease) unease.gain.setTargetAtTime(0, ac.currentTime, 1.2);
+  }
+  function audioReset(){
+    if (!ac) return;
+    stepIdx = 0; nextNote = ac.currentTime + .1;
+    if (unease) unease.gain.setTargetAtTime(0, ac.currentTime, .3);
+  }
+
+  const AUDIO_LABEL = ["♪", "♥", "✕"];
+  const AUDIO_TITLE  = ["音：すべて", "音：心音だけ", "音：なし"];
+  function cycleSound(){
+    audioMode = (audioMode + 1) % 3;
+    $mute.textContent = AUDIO_LABEL[audioMode];
+    $mute.setAttribute("aria-label", AUDIO_TITLE[audioMode]);
+    $mute.setAttribute("title", AUDIO_TITLE[audioMode]);
+    $mute.classList.toggle("beat", audioMode === 1);
+    if (!ac){ initAudio(); return; }
+    master.gain.setTargetAtTime(audioMode === 2 ? 0 : .8, ac.currentTime, .05);
+    musicBus.gain.setTargetAtTime(audioMode === 0 ? 1 : 0, ac.currentTime, .35);
+  }
+
+  /* 上から差してくる光。彼の胸の高鳴り */
+  let glowSprite = null, dustSprite = null;
+  function bakeGlow(){
+    const off = document.createElement("canvas");
+    off.width = Math.round(W * dpr); off.height = Math.round(H * dpr);
+    const c = off.getContext("2d");
+    c.scale(dpr, dpr);
+    const g = c.createRadialGradient(W/2, -40, 10, W/2, -40, H * .95);
+    g.addColorStop(0,   "rgba(255,170,190,.42)");
+    g.addColorStop(.35, "rgba(214,110,150,.16)");
+    g.addColorStop(1,   "rgba(214,110,150,0)");
+    c.fillStyle = g;
+    c.fillRect(0, 0, W, H);
+    glowSprite = off;
+  }
+  function bakeDust(){                    // ふわふわ上がっていく小さなハート
+    const s = 22;
+    const off = document.createElement("canvas");
+    off.width = off.height = Math.round(s * 2 * dpr);
+    const c = off.getContext("2d");
+    c.scale(dpr, dpr);
+    c.fillStyle = "#ffc2d2";
+    c.beginPath(); heartSub(c, s, s, s * .82); c.fill();
+    dustSprite = off;
+  }
+  let vigSprite = null, noiseSprite = null;
+  function bakeVignette(){
+    const off = document.createElement("canvas");
+    off.width = Math.round(W * dpr); off.height = Math.round(H * dpr);
+    const c = off.getContext("2d"); c.scale(dpr, dpr);
+    const g = c.createRadialGradient(W/2, H*.55, W*.28, W/2, H*.55, W*.95);
+    g.addColorStop(0,   "rgba(120,0,30,0)");
+    g.addColorStop(.55, "rgba(120,0,30,.30)");
+    g.addColorStop(1,   "rgba(70,0,18,.92)");
+    c.fillStyle = g; c.fillRect(0, 0, W, H);
+    vigSprite = off;
+  }
+  function bakeNoise(){                       // 等倍で貼れるよう、盤面より少し大きく
+    const w = W + 40, h = H + 40;
+    const off = document.createElement("canvas");
+    off.width = w; off.height = h;
+    const c = off.getContext("2d");
+    const img = c.createImageData(w, h);
+    for (let i = 0; i < w*h; i++){
+      if (Math.random() < .34){
+        const v = 120 + Math.random() * 135;
+        img.data[i*4] = v; img.data[i*4+1] = v*.72; img.data[i*4+2] = v*.78;
+        img.data[i*4+3] = 40 + Math.random() * 215;
+      }
+    }
+    c.putImageData(img, 0, 0);
+    noiseSprite = off;
+  }
+
+  const DUST = [];
+  function makeDust(){
+    for (let i = 0; i < 22; i++){
+      DUST.push({ x: Math.random() * W, sp: .006 + Math.random() * .011,
+                  ph: Math.random() * 9999, sz: .3 + Math.random() * .7,
+                  sw: 6 + Math.random() * 14 });
+    }
+  }
+  const calm = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+
+  let bubbles = [], sparks = [], ripples = [];
+  let score = 0, best = 0, dead = false, resolved = false;
+  let cursor = W / 2, cooldown = 0, overTimer = 0;
+  let held = null, nextLv = 0, uid = 1;
+  let awake = 0;                       // 動きがある間だけ回す
+  let flash = 0;                       // 合体したときの高揚
+  let shake = 0;                       // 重い想いが落ちたときの震え
+  let tension = 0, pulseF = 0, pulseT = 0;   // 積み上がり具合と、鼓動
+  let lastDropX = -999, sameStreak = 0;      // 同じところにばかり落としていないか
+  let giftPending = false, giftNext = false, teaseIdx = 0, noticeIdx = 0;
+  let ringOut = false, sinceRing = 0;        // 指輪が出回っているか／何手ぶりか
+  let ringMode = true;                       // 指輪あり／なし（難易度）
+
+  // 気づかれたときの独白
+  const NOTICE = ["そこ、気に入ったんだね", "同じところばかりだね", "……数えているよ"];
+  const TEASE  = [
+    "そんなに試すなら、特大のをあげる",
+    "まだ足りない？　いいよ、もっと",
+    "君の好きなところに、置いてあげる",
+    "遠慮しないで。まだあるから"
+  ];
+
+  const wake = n => { awake = Math.max(awake, n || 40); };
+  function pickLv(){
+    // 詰まってくるほど、そして長く来ていないほど、彼が指輪を差し出してくる
+    const chance = .07
+                 + Math.max(0, tension - .45) * .35
+                 + Math.max(0, sinceRing - 18) * .03;
+    if (ringMode && !ringOut && Math.random() < chance) return RING_LV;
+    const p = Math.random();
+    return p < .34 ? 0 : p < .63 ? 1 : p < .86 ? 2 : 3;
+  }
+
+  function reset(){
+    bubbles = []; sparks = []; ripples = [];
+    score = 0; best = 0; dead = false; resolved = false; overTimer = 0; cooldown = 0;
+    flash = 0; shake = 0; tension = 0; pulseF = 0; pulseT = 0;
+    lastDropX = -999; sameStreak = 0; giftPending = false; giftNext = false; ringOut = false; sinceRing = 0;
+    $score.textContent = "0";
+    $log.innerHTML = "";
+    $over.classList.remove("show", "warm");
+    nextLv = pickLv();
+    newHeld();
+    audioReset();
+    wake(60);
+  }
+  function newHeld(){
+    held = { lv: nextLv };
+    if (giftPending){
+      nextLv = 5 + Math.floor(Math.random() * 3);   // 特大を寄越してくる
+      giftPending = false; giftNext = true;
+    } else {
+      nextLv = pickLv(); giftNext = false;
+    }
+    const ring = nextLv < 0;
+    if (ring){ ringOut = true; sinceRing = 0; seRing(); log("これを、受け取って"); }
+    $next.textContent = ring ? "指　輪" : "「" + TIERS[nextLv].t + "」";
+    $nextBox.classList.toggle("gift", giftNext);
+    $nextBox.classList.toggle("ring", ring);
+    $nextLabel.textContent = ring ? "用 意 し た" : giftNext ? "贈 り 物" : "次に浮かぶ";
+  }
+  function spawn(x, y, lv, vx, vy){
+    const T = T_(lv);
+    const sh = SHAPE_MODE === "round" && lv >= 0 ? "round" : T.sh;
+    const r = T.r * (HIT[sh] || 1);
+    bubbles.push({ id:uid++, x, y, px:x, py:y, lv,
+                   r: r,                          // 吹き出し同士
+                   wr: T.r,                       // 壁と床
+                   m: r * r * (1 + Math.max(0, lv) * .13),
+                   angle:0, av:(Math.random() - .5) * .012,
+                   vx:vx||0, vy:vy||0, born:performance.now(), pop:0, touch:false });
+  }
+  function log(text){
+    const li = document.createElement("li");
+    li.textContent = "「" + text + "」";
+    $log.prepend(li);
+    while ($log.children.length > 5) $log.lastChild.remove();
+  }
+
+  /* ---------- 入力 ---------- */
+  function drop(){
+    if (dead || cooldown > 0 || !held) return;
+    const r = T_(held.lv).r;
+    const x = Math.max(L + r, Math.min(R - r, cursor));
+    spawn(x, LINE - 34, held.lv, 0, .6);
+    seDrop(held.lv);
+    sinceRing++;
+    cooldown = 26;
+
+    // 同じところにばかり落としていると、気づかれる
+    if (Math.abs(x - lastDropX) < 26) sameStreak++; else sameStreak = 0;
+    lastDropX = x;
+    if (sameStreak === 4) log(NOTICE[noticeIdx++ % NOTICE.length]);
+    if (sameStreak >= 7 && (sameStreak - 7) % 5 === 0){
+      giftPending = true;
+      log(TEASE[teaseIdx++ % TEASE.length]);
+      seGift();
+      flash = Math.min(1, flash + .7);
+    }
+
+    newHeld();
+    wake(120);
+  }
+  function moveTo(clientX){
+    const rect = cv.getBoundingClientRect();
+    cursor = (clientX - rect.left) / rect.width * W;
+    wake(12);
+  }
+  cv.addEventListener("pointermove", e => moveTo(e.clientX));
+  cv.addEventListener("pointerdown", e => moveTo(e.clientX));
+  cv.addEventListener("pointerup",   e => { initAudio(); moveTo(e.clientX); drop(); });
+  window.addEventListener("keydown", e => {
+    if (e.key === "ArrowLeft")  { cursor -= 16; wake(12); }
+    if (e.key === "ArrowRight") { cursor += 16; wake(12); }
+    if (e.key === " " || e.key === "Enter") { e.preventDefault(); initAudio(); drop(); }
+  });
+  document.getElementById("retry").addEventListener("click", () => { initAudio(); reset(); });
+  $mute.addEventListener("click", cycleSound);
+  $ringBtn.addEventListener("click", () => {
+    ringMode = !ringMode;
+    $ringBtn.classList.toggle("off", !ringMode);
+    $ringBtn.setAttribute("aria-label", ringMode ? "指輪：あり" : "指輪：なし");
+    $ringBtn.setAttribute("title", ringMode ? "指輪：あり（やさしい）" : "指輪：なし（むずかしい）");
+    log(ringMode ? "ふふ、やっぱり要るよね" : "……要らないの？");
+    if (!ringMode && nextLv < 0){        // 手を引っ込める
+      nextLv = pickLv(); ringOut = false;
+      $next.textContent = "「" + TIERS[nextLv].t + "」";
+      $nextBox.classList.remove("ring");
+      $nextLabel.textContent = "次に浮かぶ";
+    }
+    wake(20);
+  });
+  document.addEventListener("visibilitychange", () => {
+    if (document.hidden){ ac && ac.suspend(); }
+    else { ac && ac.resume(); wake(30); }
+  });
+
+  /* ---------- 物理 ---------- */
+  const G = .5, DAMP = .985, VMAX = 18, SOLVE = 6;
+
+  function step(){
+    if (cooldown > 0) cooldown--;
+
+    for (const b of bubbles){
+      b.px = b.x; b.py = b.y;
+      b.vy += G;
+      if (b.vy > VMAX) b.vy = VMAX;
+      if (b.vy < -VMAX) b.vy = -VMAX;
+      b.x += b.vx; b.y += b.vy;
+      b.touch = false;
+      if (b.pop > 0) b.pop -= .06;
+    }
+
+    for (let it = 0; it < SOLVE; it++){
+      for (let i = 0; i < bubbles.length; i++){
+        const a = bubbles[i];
+        if (a.gone) continue;
+        for (let j = i + 1; j < bubbles.length; j++){
+          const c = bubbles[j];
+          if (c.gone) continue;
+          const rr = a.r + c.r;
+          // 同じ段どうし、または指輪が絡めば合体。押し合って止まる距離より必ず甘くする
+          const same = a.lv === c.lv || a.lv < 0 || c.lv < 0;
+          const mrr = same ? Math.max(rr * 1.03, (a.wr + c.wr) * .97) : 0;
+          const lim = same ? mrr : rr;
+          const dx = c.x - a.x;
+          if (dx > lim || dx < -lim) continue;
+          const dy = c.y - a.y;
+          if (dy > lim || dy < -lim) continue;
+          const d2 = dx*dx + dy*dy;
+          if (d2 === 0) continue;
+
+          if (same && it === 0 && d2 < mrr*mrr){ merge(a, c); break; }
+          if (d2 >= rr*rr) continue;
+
+          const d = Math.sqrt(d2), nx = dx / d, ny = dy / d;
+          const ma = a.m, mc = c.m, tm = ma + mc;
+          const push = (rr - d) * .9;
+          a.x -= nx * push * (mc / tm); a.y -= ny * push * (mc / tm);
+          c.x += nx * push * (ma / tm); c.y += ny * push * (ma / tm);
+          a.touch = c.touch = true;
+          if (it === 0){                          // 触れた面をこすって転がる
+            const rel = (c.vx - a.vx) * -ny + (c.vy - a.vy) * nx;
+            a.av -= rel / a.r * .055;
+            c.av += rel / c.r * .055;
+          }
+        }
+      }
+      for (const b of bubbles){
+        if (b.gone) continue;
+        if (b.x - b.wr < L){ b.x = L + b.wr; b.touch = true; if (it === 0) b.av -= b.vy / b.wr * .09; }
+        if (b.x + b.wr > R){ b.x = R - b.wr; b.touch = true; if (it === 0) b.av += b.vy / b.wr * .09; }
+        if (b.y + b.wr > B){ b.y = B - b.wr; b.touch = true; if (it === 0) b.av += b.vx / b.wr * .13; }
+      }
+    }
+
+    let moving = false;
+    for (const b of bubbles){
+      if (b.gone) continue;
+      const fall = b.vy;                        // 解決前の落下速度
+      b.vx = (b.x - b.px) * DAMP;
+      b.vy = (b.y - b.py) * DAMP;
+      if (b.touch) b.vx *= .86;
+      if (Math.abs(b.vx) < .02) b.vx = 0;
+      if (Math.abs(b.vy) < .02) b.vy = 0;
+
+      // しっぽが重り。傾いた分だけ戻ろうとする（重い想いほど、ゆっくり）
+      const tilt = Math.abs(b.angle);
+      let k = .017 / (1 + b.lv * .16);
+      if (b.touch){                             // 支えられていると、起き上がれなくなる
+        if (tilt > .95) k = 0;                  // 55°以上：倒れたまま
+        else if (tilt > .55) k *= .22;          // 32°以上：もう戻りきれない
+      }
+      b.av += -Math.sin(b.angle) * k;
+      b.av *= b.touch ? .90 : .982;
+      if (b.av >  .20) b.av =  .20;
+      if (b.av < -.20) b.av = -.20;
+      b.angle += b.av;
+      if (b.angle >  Math.PI) b.angle -= TAU;
+      if (b.angle < -Math.PI) b.angle += TAU;
+      if (b.touch && Math.abs(b.av) < .0016){
+        if (tilt < .012){ b.av = 0; b.angle = 0; }   // まっすぐ立った
+        else if (tilt > .55) b.av = 0;               // 倒れたまま落ち着いた
+      }
+
+      if (b.touch && fall > 3.2 && b.vy < fall * .45){
+        seLand(b.lv);
+        if (b.lv >= 4) shake = Math.min(6, Math.max(shake, (b.lv - 2) * .5 * Math.min(1, fall / 11)));
+      }
+      if (b.vx || b.vy || b.pop > 0 || b.av) moving = true;
+      if (b.lv >= BEAT_FROM) moving = true;      // 鼓動は描き続ける
+    }
+    if (resolved) moving = true;
+    if (moving) wake(8);
+
+    bubbles = bubbles.filter(b => !b.gone);
+
+    // どこまで積み上がったか。0＝空、1＝線に届いた
+    // 落下中のものは山ではないので、支えられているものだけ数える
+    let topY = B;
+    for (const b of bubbles){
+      if (!b.touch) continue;
+      if (b.y - b.wr < topY) topY = b.y - b.wr;
+    }
+    const raw = (B - topY) / (B - LINE);
+    tension = Math.max(0, Math.min(1, raw));
+
+    // 中盤を越えると、鼓動が聞こえてくる。詰まるほど速い
+    // 「心音だけ」を選んでいるときは、最初から聞こえる
+    const beatFrom = audioMode === 1 ? -1 : .50;   // 心音モードは盤面が空でも鳴る
+    if (!dead && tension > beatFrom){
+      const rate = Math.max(0, (tension - .50) / .50);
+      const period = 74 - rate * 42;                   // 74→32フレーム
+      pulseF++;
+      if (pulseF >= period){ pulseF = 0; seThump(Math.max(.25, tension)); }
+      pulseT = pulseF / period;
+      wake(8);
+    } else { pulseF = 0; pulseT = 0; }
+
+    if (!dead){
+      let out = false;
+      const now = performance.now();
+      for (const b of bubbles){
+        if (b.y - b.wr < LINE && now - b.born > 700) out = true;
+      }
+      overTimer = out ? overTimer + 1 : Math.max(0, overTimer - 4);
+      if (overTimer > 0){
+        wake(8);
+        if (overTimer % 24 === 1) seWarn(overTimer / OVER_LIMIT);
+      }
+      if (overTimer > OVER_LIMIT) gameOver();
+    }
+
+    for (const s of sparks){ s.vy += .14; s.x += s.vx; s.y += s.vy; s.life -= .024; }
+    sparks = sparks.filter(s => s.life > 0);
+    for (const w of ripples){ w.rad += w.sp; w.life -= .035; }
+    ripples = ripples.filter(w => w.life > 0);
+    if (sparks.length || ripples.length) wake(6);
+  }
+
+  function merge(a, c){
+    a.gone = c.gone = true;
+    const mx = (a.x + c.x) / 2, my = (a.y + c.y) / 2;
+    const aR = a.lv < 0, cR = c.lv < 0;
+    // 指輪はどの想いとも結ばれ、その想いをひとつ上へ進める
+    const lv = (aR && cR) ? 3 : aR ? c.lv : a.lv;
+    if (aR || cR) ringOut = false;                  // 使われた。また用意してくれる
+    if (lv === MAX){
+      score += 300;
+      resolved = true;                         // 想いがひとつに畳まれた＝決意
+      seResolve();
+      burst(mx, my, TIERS[lv].bg, 34);
+      ripples.push({x:mx, y:my, rad:10, sp:5.5, life:1, col:"#f3c9b4"});
+      log("ふふ、そんなに泣かないで");
+    } else {
+      const nl = lv + 1;
+      spawn(mx, my, nl, (c.x - a.x) * .04, -1.4);
+      bubbles[bubbles.length - 1].pop = 1;
+      score += TIERS[nl].s;
+      seMerge(nl);
+      burst(mx, my, TIERS[nl].bg, 8 + nl);
+      ripples.push({x:mx, y:my, rad:TIERS[nl].r*.6, sp:2.6, life:1, col:TIERS[nl].bg});
+      if (nl > best){ best = nl; log(TIERS[nl].t); }
+      else if (nl >= 6) log(TIERS[nl].t);
+    }
+    $score.textContent = score;
+    flash = Math.min(1, flash + .55 + lv * .04);
+    updateMood();
+    wake(90);
+  }
+
+  function burst(x, y, col, n){
+    for (let i = 0; i < n; i++){
+      const a = rnd(0, TAU), sp = rnd(1, 4.5);
+      sparks.push({x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 1, life:1, col, sz:rnd(1.2,3)});
+    }
+  }
+
+  /* 線を越えたあと、彼が何をしたか。深く育つほど、戻れなくなる */
+  const ENDINGS = [
+    { upto:2,  head:"彼は、傘を持って出た。",
+      body:"明日は雨だと、君が誰かに話していたから。<br>降らなかった夜も、彼はそこに立っていた。" },
+    { upto:5,  head:"彼は、同じ電車に乗った。",
+      body:"三本前から待っていたことは、言わずにおいた。<br>偶然にしておいた方が、君も気が楽だろうから。" },
+    { upto:7,  head:"彼は、合鍵を返しに行った。",
+      body:"借りた覚えのないものを返されたとき、<br>人はうまく断れないのだと、彼は知っていた。" },
+    { upto:9,  head:"彼は、二人分の食事を作った。",
+      body:"君の席にも、湯気の立つ皿を置いてある。<br>冷める前に帰ってくると、決まっていたから。" },
+    { upto:10, head:"彼は、支度を終えた。",
+      body:"サイズも、好みも、季節ごとに揃えてある。<br>もう、君に訊かなくてもわかるようになった。" }
+  ];
+  const RESOLVED_END = {
+    head:"彼は、しあわせになりました。",
+    body:"椅子は三つ。ひとつは、まだ足が届かない。<br>いただきますが三つ揃うまで、彼は箸を持たない。"
+  };
+
+  function gameOver(){
+    dead = true;
+    let e = ENDINGS[ENDINGS.length - 1];
+    if (resolved) e = RESOLVED_END;
+    else for (const cand of ENDINGS){ if (best <= cand.upto){ e = cand; break; } }
+    $overT.innerHTML = '<span class="head">' + e.head + '</span>' + e.body;
+    $over.classList.toggle("warm", resolved);
+    $over.classList.add("show");
+    seOver();
+    wake(30);
+  }
+
+  /* ---------- 描画 ---------- */
+  function put(lv, x, y, scale, alpha, angle){
+    const sp = SPRITES[lv < 0 ? (tension > .52 ? RING_HOT : RING_IDX) : lv];
+    if (alpha !== undefined && alpha < 1) ctx.globalAlpha = alpha;
+    if (angle){
+      ctx.save();
+      ctx.translate(x, y); ctx.rotate(angle);
+      ctx.drawImage(sp.cv, -sp.ox*scale, -sp.oy*scale, sp.w*scale, sp.h*scale);
+      ctx.restore();
+    } else {
+      ctx.drawImage(sp.cv, x - sp.ox*scale, y - sp.oy*scale, sp.w*scale, sp.h*scale);
+    }
+    if (alpha !== undefined && alpha < 1) ctx.globalAlpha = 1;
+  }
+
+  function draw(now){
+    ctx.clearRect(0, 0, W, H);
+
+    // 高鳴りの光。育つほど強くなる
+    const heat = Math.min(1, best / 9);
+    ctx.globalAlpha = .30 + heat * .45;
+    ctx.drawImage(glowSprite, 0, 0, W, H);
+    ctx.globalAlpha = 1;
+
+    // 舞い上がる想い
+    const n = calm ? 0 : 8 + Math.round(heat * 14);
+    const rise = calm ? 0 : now;
+    for (let i = 0; i < n; i++){
+      const d = DUST[i];
+      const y = H + 24 - ((rise * d.sp + d.ph) % (H + 60));
+      const x = d.x + Math.sin(rise * .0011 + d.ph) * d.sw;
+      const sz = d.sz * (12 + heat * 7);
+      ctx.globalAlpha = .10 + heat * .16;
+      ctx.drawImage(dustSprite, x - sz/2, y - sz/2, sz, sz);
+    }
+    ctx.globalAlpha = 1;
+
+    ctx.drawImage(bgSprite, 0, 0, W, H);
+
+    if (resolved){                       // 決意のあと、盤面そのものが脈打つ
+      const beat = Math.max(0, Math.sin(now / 300)) + Math.max(0, Math.sin(now / 300 - .55)) * .5;
+      ctx.fillStyle = "rgba(150,20,50," + (.05 + beat * .06) + ")";
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    const danger = overTimer / OVER_LIMIT;
+    const pulse = overTimer > 0 ? .35 + Math.sin(now / 90) * .3 : .16;
+    ctx.strokeStyle = "rgba(200,70,90," + pulse + ")";
+    ctx.setLineDash([5, 7]); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(L, LINE + .5); ctx.lineTo(R, LINE + .5); ctx.stroke();
+    ctx.setLineDash([]);
+
+    if (overTimer > 0 && !dead){
+      ctx.fillStyle = "rgba(200,70,90,.75)";
+      ctx.fillRect(L, LINE - 3, (R - L) * danger, 3);
+      ctx.globalAlpha = .55 + Math.sin(now / 110) * .35;
+      ctx.fillStyle = "#e08b9a";
+      ctx.font = '10px "Hiragino Mincho ProN","Yu Mincho",serif';
+      ctx.textAlign = "right"; ctx.textBaseline = "bottom";
+      const msg = resolved      ? "君も、そう言ってくれたから"
+                : danger > .62  ? "止めないんだね"
+                :                 "これは、両想いということかな";
+      ctx.fillText(msg, R, LINE - 7);
+      ctx.globalAlpha = 1;
+    }
+
+    if (!dead && held){
+      const r = T_(held.lv).r;
+      const x = Math.max(L + r, Math.min(R - r, cursor));
+      ctx.globalAlpha = .25;
+      ctx.strokeStyle = "rgba(246,239,223,.5)";
+      ctx.setLineDash([2, 6]);
+      ctx.beginPath(); ctx.moveTo(x, LINE - 34 + r); ctx.lineTo(x, B); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = 1;
+      put(held.lv, x, LINE - 34, 1, cooldown > 0 ? .35 : .95);
+    }
+
+    const quake = shake > .12;
+    if (quake){
+      ctx.save();
+      ctx.translate(rnd(-shake, shake), rnd(-shake, shake));
+      shake *= .80;
+      wake(3);
+    } else shake = 0;
+
+    for (const b of bubbles){
+      let s = b.pop > 0 ? 1 + b.pop * .16 : 1;
+      if (b.lv >= BEAT_FROM){
+        const beat = Math.sin(now / 340 + b.id) ;
+        s *= 1 + Math.max(0, beat) * .022 + Math.max(0, Math.sin(now/340 + b.id - .5)) * .012;
+      }
+      put(b.lv, b.x, b.y, s, undefined, b.angle);
+    }
+    if (quake) ctx.restore();
+
+    for (const w of ripples){
+      ctx.globalAlpha = w.life * .5;
+      ctx.strokeStyle = w.col; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.arc(w.x, w.y, w.rad, 0, TAU); ctx.stroke();
+    }
+    for (const s of sparks){
+      ctx.globalAlpha = s.life;
+      ctx.fillStyle = s.col;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.sz, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
+    if (flash > .002){
+      ctx.fillStyle = "rgba(255,205,220," + (flash * .13) + ")";
+      ctx.fillRect(0, 0, W, H);
+      flash *= .86;
+      wake(4);
+    }
+
+    // 積み上がってくると、視界が狭くなる
+    if (tension > .50 && !dead){
+      const t = (tension - .50) / .50;                       // 0..1
+      // ドクン・ドクン の二拍
+      const beat = Math.max(0, 1 - pulseT * 4.2) +
+                   Math.max(0, 1 - Math.abs(pulseT - .21) * 9) * .55;
+      ctx.globalAlpha = Math.min(.85, t * (.22 + beat * .40));
+      ctx.drawImage(vigSprite, 0, 0, W, H);
+      ctx.globalAlpha = 1;
+
+      if (t > .55){                                          // ざらつく
+        ctx.globalAlpha = (t - .55) * .11 + beat * .015;
+        const ox = Math.random() * 40, oy = Math.random() * 40;
+        ctx.drawImage(noiseSprite, -ox, -oy);
+        ctx.globalAlpha = 1;
+      }
+      if (t > .70){                                          // 像がぶれる
+        ctx.globalAlpha = (t - .70) * .45 + beat * .08;
+        ctx.drawImage(cv, 0, 0, cv.width, cv.height, -1.5 - beat * 2, .5, W, H);
+        ctx.globalAlpha = 1;
+      }
+    }
+  }
+
+  /* ---------- ループ（動きが無い間は休む） ---------- */
+  let idleTick = 0;
+  function loop(now){
+    requestAnimationFrame(loop);
+    if (awake <= 0){
+      if (!calm && (idleTick++ % 3) === 0) draw(now);   // 静止中は 20fps で背景だけ
+      return;
+    }
+    awake--;
+    if (!dead) step();
+    else {
+      for (const s of sparks){ s.vy += .14; s.x += s.vx; s.y += s.vy; s.life -= .024; }
+      sparks = sparks.filter(s => s.life > 0);
+      if (sparks.length) wake(4);
+    }
+    draw(now);
+  }
+
+  bake();
+  bakeBg();
+  bakeGlow();
+  bakeDust();
+  bakeVignette();
+  bakeNoise();
+  makeDust();
+  reset();
+  requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
