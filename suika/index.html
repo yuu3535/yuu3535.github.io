@@ -442,6 +442,32 @@
     }
   }
 
+  /* 飛び散るハート。粒ごとにパスを引くと 5-1 と同じ罠を踏むので、
+     向きちがいを1枚の帯に焼いて、あとは切り出して貼るだけにする */
+  const HROT = 8, HSZ = 16;
+  const HEARTS = [];
+  function bakeHearts(){
+    for (let lv = 0; lv < TIERS.length; lv++){
+      const off = document.createElement("canvas");
+      off.width = Math.ceil(HSZ * HROT * dpr); off.height = Math.ceil(HSZ * dpr);
+      const c = off.getContext("2d");
+      c.scale(dpr, dpr);
+      c.fillStyle = TIERS[lv].bg;
+      c.strokeStyle = shade(TIERS[lv].bg, -34);
+      c.lineWidth = .8;
+      for (let i = 0; i < HROT; i++){
+        c.save();
+        c.translate(HSZ * i + HSZ / 2, HSZ / 2);
+        c.rotate(i / HROT * TAU);
+        c.beginPath();
+        heartSub(c, 0, -HSZ * .017, HSZ * .34);
+        c.fill(); c.stroke();
+        c.restore();
+      }
+      HEARTS.push(off);
+    }
+  }
+
   /* 背景（罫線）も焼いておく */
   let bgSprite = null;
   function bakeBg(){
@@ -617,6 +643,13 @@
     bell(659.25, .09, 1.5);
     blip(98, .7, .09, "triangle", .8);
   }
+  function seImpact(force){
+    if (!ac) return;
+    const v = .10 + force * .10;
+    blip(150, .08, v * .40, "triangle", .30);              // 当たった瞬間の芯
+    blip(58,  .34, v,       "sine",     .42);              // 腹に来る低さ
+    blip(41,  .55, v * .78, "sine",     .52, ac.currentTime + .025);
+  }
   function seWarn(d){
     blip(660 + d * 220, .10, .035 + d * .045, "triangle", 1.5);
   }
@@ -716,6 +749,7 @@
   let awake = 0;                       // 動きがある間だけ回す
   let flash = 0;                       // 合体したときの高揚
   let shake = 0;                       // 重い想いが落ちたときの震え
+  let thud  = 0;                       // 贈り物が着いたときの沈み込み（下方向だけ）
   let tension = 0, pulseF = 0, pulseT = 0;   // 積み上がり具合と、鼓動
   let lastDropX = -999, sameStreak = 0;      // 同じところにばかり落としていないか
   let giftPending = false, giftNext = false, teaseIdx = 0, noticeIdx = 0;
@@ -745,7 +779,7 @@
   function reset(){
     bubbles = []; sparks = []; ripples = [];
     score = 0; best = 0; dead = false; resolved = false; overTimer = 0; cooldown = 0;
-    flash = 0; shake = 0; tension = 0; pulseF = 0; pulseT = 0;
+    flash = 0; shake = 0; thud = 0; tension = 0; pulseF = 0; pulseT = 0;
     lastDropX = -999; sameStreak = 0; giftPending = false; giftNext = false; ringOut = false; sinceRing = 0;
     $score.textContent = "0";
     $log.innerHTML = "";
@@ -756,7 +790,8 @@
     wake(60);
   }
   function newHeld(){
-    held = { lv: nextLv };
+    // giftNext は「いま nextLv に入っているものが贈り物か」。持ち替える前に写し取る
+    held = { lv: nextLv, gift: giftNext };
     if (giftPending){
       nextLv = 5 + Math.floor(Math.random() * 3);   // 特大を寄越してくる
       giftPending = false; giftNext = true;
@@ -798,6 +833,7 @@
     const r = T_(held.lv).r;
     const x = Math.max(L + r, Math.min(R - r, cursor));
     spawn(x, LINE - 34, held.lv, 0, .6);
+    if (held.gift) bubbles[bubbles.length - 1].gift = true;   // 着地で重みを出すため
     seDrop(held.lv);
     sinceRing++;
     cooldown = 26;
@@ -975,8 +1011,10 @@
       }
 
       if (b.touch && fall > 3.2 && b.vy < fall * .45){
-        seLand(b.lv);
+        // 先に通常の震え。贈り物はこの上限（6）を越えるので、順番を入れ替えないこと
         if (b.lv >= 4) shake = Math.min(6, Math.max(shake, (b.lv - 2) * .5 * Math.min(1, fall / 11)));
+        if (b.gift && !b.landed){ b.landed = true; impact(b.x, b.y + b.wr, b.lv, fall); }
+        else seLand(b.lv);
       }
       if (b.vx || b.vy || b.pop > 0 || b.av) moving = true;
       if (b.lv >= BEAT_FROM) moving = true;      // 鼓動は描き続ける
@@ -1022,8 +1060,7 @@
       if (overTimer > OVER_LIMIT) gameOver();
     }
 
-    for (const s of sparks){ s.vy += .14; s.x += s.vx; s.y += s.vy; s.life -= .024; }
-    sparks = sparks.filter(s => s.life > 0);
+    stepSparks();
     for (const w of ripples){ w.rad += w.sp; w.life -= .035; }
     ripples = ripples.filter(w => w.life > 0);
     if (sparks.length || ripples.length) wake(6);
@@ -1035,12 +1072,14 @@
     const aR = a.lv < 0, cR = c.lv < 0;
     // 指輪はどの想いとも結ばれ、その想いをひとつ上へ進める
     const lv = (aR && cR) ? 3 : aR ? c.lv : a.lv;
+    // 着く前に合体してしまった贈り物にも、重みだけは持たせる
+    if ((a.gift && !a.landed) || (c.gift && !c.landed)) impact(mx, my, lv, 9);
     if (aR || cR) ringOut = false;                  // 使われた。また用意してくれる
     if (lv === MAX){
       score += 300;
       resolved = true;                         // 想いがひとつに畳まれた＝決意
       seResolve();
-      burst(mx, my, TIERS[lv].bg, 34);
+      burst(mx, my, lv, 34);
       ripples.push({x:mx, y:my, rad:10, sp:5.5, life:1, col:"#f3c9b4"});
       log("ふふ、そんなに泣かないで");
     } else {
@@ -1049,7 +1088,7 @@
       bubbles[bubbles.length - 1].pop = 1;
       score += TIERS[nl].s;
       seMerge(nl);
-      burst(mx, my, TIERS[nl].bg, 8 + nl);
+      burst(mx, my, nl, 8 + nl);
       ripples.push({x:mx, y:my, rad:TIERS[nl].r*.6, sp:2.6, life:1, col:TIERS[nl].bg});
       if (nl > best){ best = nl; log(TIERS[nl].t); }
       else if (nl >= 6) log(TIERS[nl].t);
@@ -1060,11 +1099,47 @@
     wake(90);
   }
 
-  function burst(x, y, col, n){
+  // 想いがハートの形になる段（Lv8＝意味が反転する所）から、粒もハートで散る
+  function burst(x, y, lv, n){
+    const T = TIERS[lv];
+    const hs = (T.sh === "heart" || T.sh === "heart2") ? HEARTS[lv] : null;
     for (let i = 0; i < n; i++){
       const a = rnd(0, TAU), sp = rnd(1, 4.5);
-      sparks.push({x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 1, life:1, col, sz:rnd(1.2,3)});
+      sparks.push({x, y, vx:Math.cos(a)*sp, vy:Math.sin(a)*sp - 1, life:1, col:T.bg,
+                   sz: hs ? rnd(3.2, 6.4) : rnd(1.2, 3),
+                   hs, rot: Math.random() * HROT, spin: rnd(-.42, .42)});
     }
+  }
+
+  // 贈り物が着いたときの砂ぼこり。低く、横へ広がる
+  function dust(x, y, n){
+    for (let i = 0; i < n; i++){
+      const a = rnd(-.55, .55) + (Math.random() < .5 ? Math.PI : 0);
+      const sp = rnd(1.4, 4.8);
+      sparks.push({x: x + rnd(-15, 15), y, vx:Math.cos(a)*sp, vy:-rnd(.2, 1.6),
+                   life:1, col:"#d8bfae", sz:rnd(1, 2.5), hs:null, rot:0, spin:0});
+    }
+  }
+
+  // 粒の更新は step() とゲームオーバー後の2箇所から呼ぶ。片方だけ直さないように
+  function stepSparks(){
+    for (const s of sparks){
+      s.vy += .14; s.x += s.vx; s.y += s.vy; s.life -= .024; s.rot += s.spin;
+    }
+    sparks = sparks.filter(s => s.life > 0);
+  }
+
+  /* 贈り物が着いた一撃。彼としては善意なので、音は威嚇ではなく「重さ」に寄せる */
+  function impact(x, y, lv, fall){
+    const force = Math.min(1, Math.max(0, fall) / 12);
+    const gy = Math.min(y, B - 2);
+    // 沈み込みは下の余白（WALL=8）に収まる範囲。越えると山が枠の外へ切れて見える
+    thud  = Math.max(thud,  3.6 + force * 3.6);
+    shake = Math.max(shake, 6.5 + force * 4.5);
+    seImpact(force);
+    ripples.push({x, y:gy, rad:TIERS[lv].r * .45, sp:4.4, life:1, col:"#e6c6b2"});
+    dust(x, gy, 12 + Math.round(force * 10));
+    wake(70);
   }
 
   /* 線を越えたあと、彼が何をしたか。深く育つほど、戻れなくなる */
@@ -1175,13 +1250,14 @@
       put(held.lv, x, LINE - 34, 1, cooldown > 0 ? .35 : .95);
     }
 
-    const quake = shake > .12;
+    // thud は下だけに効く。揺れではなく、受け止めて沈む動き
+    const quake = shake > .12 || thud > .12;
     if (quake){
       ctx.save();
-      ctx.translate(rnd(-shake, shake), rnd(-shake, shake));
-      shake *= .80;
+      ctx.translate(rnd(-shake, shake), rnd(-shake, shake) + thud);
+      shake *= .80; thud *= .855;
       wake(3);
-    } else shake = 0;
+    } else { shake = 0; thud = 0; }
 
     for (const b of bubbles){
       let s = b.pop > 0 ? 1 + b.pop * .16 : 1;
@@ -1200,8 +1276,14 @@
     }
     for (const s of sparks){
       ctx.globalAlpha = s.life;
-      ctx.fillStyle = s.col;
-      ctx.beginPath(); ctx.arc(s.x, s.y, s.sz, 0, TAU); ctx.fill();
+      if (s.hs){                                   // 焼いた帯から向きを1枚切り出して貼る
+        const i = ((s.rot | 0) % HROT + HROT) % HROT;
+        ctx.drawImage(s.hs, i * HSZ * dpr, 0, HSZ * dpr, HSZ * dpr,
+                      s.x - s.sz, s.y - s.sz, s.sz * 2, s.sz * 2);
+      } else {
+        ctx.fillStyle = s.col;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.sz, 0, TAU); ctx.fill();
+      }
     }
     ctx.globalAlpha = 1;
 
@@ -1247,14 +1329,14 @@
     awake--;
     if (!dead) step();
     else {
-      for (const s of sparks){ s.vy += .14; s.x += s.vx; s.y += s.vy; s.life -= .024; }
-      sparks = sparks.filter(s => s.life > 0);
+      stepSparks();
       if (sparks.length) wake(4);
     }
     draw(now);
   }
 
   bake();
+  bakeHearts();
   bakeBg();
   bakeGlow();
   bakeDust();
