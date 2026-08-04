@@ -309,6 +309,26 @@
   /* 当たり判定の半径。外接円より内側にある形は詰めて、隙間（膜）を減らす */
   const HIT = { round:1, wobble:.995, cloud:.955, heart:.78, heart2:.78, spike:.92, thorn:.86, ring:.88 };
 
+  /* ハートだけは円ひとつで近似できない。上のV字のくぼみは、円をひとつに
+     すると必ず膜になる（外接0.95・くぼみ0.47の差が埋まらない）。
+     複数の円の集合で表し、円と円の谷をそのままくぼみとして使う。
+     数値は輪郭を実測して、はみ出しとめり込みの和が最小になるよう当てはめたもの。
+     ox/oy/r はすべて T.r に対する比。bound は外接＝合体条件の基準になる */
+  const PARTS = {
+    heart: { bound:.913, c:[
+      { ox: .000, oy: .094, r:.593 },   // 中央
+      { ox:-.403, oy:-.273, r:.426 },   // 左のふくらみ
+      { ox: .403, oy:-.273, r:.426 },   // 右のふくらみ
+      { ox: .000, oy: .529, r:.277 }    // 下の先
+    ]},
+    heart2: { bound:.949, c:[
+      { ox:-.100, oy: .203, r:.580 },   // 主・中央
+      { ox:-.516, oy:-.198, r:.380 },   // 主・左
+      { ox: .316, oy:-.198, r:.380 },   // 主・右
+      { ox: .608, oy:-.503, r:.160 }    // 添え
+    ]}
+  };
+
   function wrap(text, per){
     const out = [];
     for (let i = 0; i < text.length; i += per) out.push(text.slice(i, i + per));
@@ -753,11 +773,15 @@
   function spawn(x, y, lv, vx, vy){
     const T = T_(lv);
     const sh = SHAPE_MODE === "round" && lv >= 0 ? "round" : T.sh;
-    const r = T.r * (HIT[sh] || 1);
+    const P = PARTS[sh];
+    const mr = T.r * (HIT[sh] || 1);         // 質量の基準。改修前と同じ値のまま
+    // 集合体の場合、r は外接。合体条件が分離距離より必ず甘くなる（後述 step）
+    const r = P ? T.r * P.bound : mr;
     bubbles.push({ id:uid++, x, y, px:x, py:y, lv,
                    r: r,                          // 吹き出し同士
                    wr: T.r,                       // 壁と床
-                   m: r * r * (1 + Math.max(0, lv) * .13),
+                   parts: P ? P.c.map(p => ({ ox:p.ox * T.r, oy:p.oy * T.r, r:p.r * T.r })) : null,
+                   m: mr * mr * (1 + Math.max(0, lv) * .13),
                    angle:0, av:(Math.random() - .5) * .012,
                    vx:vx||0, vy:vy||0, born:performance.now(), pop:0, touch:false });
   }
@@ -829,6 +853,34 @@
   /* ---------- 物理 ---------- */
   const G = .5, DAMP = .985, VMAX = 18, SOLVE = 6;
 
+  /* 集合体どうしの接触。最も深く重なっている円の組だけを返す。
+     ひとつの相手に対して接点はひとつ、と割り切る（SOLVE の反復で収束する）。
+     parts を持たない相手は、半径 r の円ひとつとして扱う */
+  const CT = { nx:0, ny:0, sep:0 };
+  function contact(a, c){
+    const ap = a.parts, cp = c.parts;
+    const na = ap ? ap.length : 1, nc = cp ? cp.length : 1;
+    let deepest = 0;
+    for (let i = 0; i < na; i++){
+      let ax, ay, ar;
+      if (ap){ const p = ap[i];
+        ax = a.x + p.ox*a.ca - p.oy*a.sa; ay = a.y + p.ox*a.sa + p.oy*a.ca; ar = p.r;
+      } else { ax = a.x; ay = a.y; ar = a.r; }
+      for (let j = 0; j < nc; j++){
+        let cx, cy, cr;
+        if (cp){ const q = cp[j];
+          cx = c.x + q.ox*c.ca - q.oy*c.sa; cy = c.y + q.ox*c.sa + q.oy*c.ca; cr = q.r;
+        } else { cx = c.x; cy = c.y; cr = c.r; }
+        const dx = cx - ax, dy = cy - ay, rr = ar + cr;
+        const d2 = dx*dx + dy*dy;
+        if (d2 >= rr*rr || d2 === 0) continue;
+        const d = Math.sqrt(d2), ov = rr - d;
+        if (ov > deepest){ deepest = ov; CT.nx = dx/d; CT.ny = dy/d; CT.sep = ov; }
+      }
+    }
+    return deepest > 0;
+  }
+
   function step(){
     if (cooldown > 0) cooldown--;
 
@@ -840,6 +892,8 @@
       b.x += b.vx; b.y += b.vy;
       b.touch = false;
       if (b.pop > 0) b.pop -= .06;
+      // 集合体の円は角度で回る。angle は解決ループの中では変わらないので一度だけ
+      if (b.parts){ b.ca = Math.cos(b.angle); b.sa = Math.sin(b.angle); }
     }
 
     for (let it = 0; it < SOLVE; it++){
@@ -862,11 +916,17 @@
           if (d2 === 0) continue;
 
           if (same && it === 0 && d2 < mrr*mrr){ merge(a, c); break; }
-          if (d2 >= rr*rr) continue;
+          if (d2 >= rr*rr) continue;      // rr は外接どうし。ここまでは大まかな足切り
 
-          const d = Math.sqrt(d2), nx = dx / d, ny = dy / d;
+          let nx, ny, push;
+          if (a.parts || c.parts){
+            if (!contact(a, c)) continue;          // 外接は重なっても、円の谷なら当たらない
+            nx = CT.nx; ny = CT.ny; push = CT.sep * .9;
+          } else {
+            const d = Math.sqrt(d2);
+            nx = dx / d; ny = dy / d; push = (rr - d) * .9;
+          }
           const ma = a.m, mc = c.m, tm = ma + mc;
-          const push = (rr - d) * .9;
           a.x -= nx * push * (mc / tm); a.y -= ny * push * (mc / tm);
           c.x += nx * push * (ma / tm); c.y += ny * push * (ma / tm);
           a.touch = c.touch = true;
