@@ -1,115 +1,824 @@
 <!doctype html>
 <html lang="ja">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#05070a" />
-    <title>My Game Arcade</title>
-    <link rel="stylesheet" href="./web2/home.css" />
-  </head>
-  <body>
-    <main class="wrap">
-      <header class="hero">
-        <div class="badge">Personal Arcade</div>
-        <h1>MY GAME ARCADE</h1>
-        <p class="sub">
-          自分用のミニゲーム置き場。気が向いたら増築していく予定。
-        </p>
-      </header>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>コマ割りGIFメーカー</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=M+PLUS+1p:wght@400;500;700&display=swap">
+<style>
+:root{
+  --paper:#E9EDF2; --panel:#FFFFFF; --ink:#1D2130; --sub:#5B6376; --line:#CCD3DE;
+  --gold:#B67C0A; --gold-soft:#F3E3BC; --chk-a:#FFFFFF; --chk-b:#E3E7EE;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme:dark){
+  :root:not([data-theme="light"]){
+    --paper:#161922; --panel:#1F2330; --ink:#E6E9EF; --sub:#99A1B3; --line:#353B4C;
+    --gold:#E6AE3C; --gold-soft:#3A301A; --chk-a:#2A2F3D; --chk-b:#232734;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#161922; --panel:#1F2330; --ink:#E6E9EF; --sub:#99A1B3; --line:#353B4C;
+  --gold:#E6AE3C; --gold-soft:#3A301A; --chk-a:#2A2F3D; --chk-b:#232734;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--paper);color:var(--ink);
+  font-family:"M PLUS 1p","Hiragino Sans","Yu Gothic",system-ui,sans-serif;font-size:15px;line-height:1.6}
+main{max-width:720px;margin:0 auto;padding:18px 14px 40px}
+h1{font-family:"DotGothic16","M PLUS 1p",monospace;font-weight:400;font-size:26px;letter-spacing:.04em;margin:4px 0 2px}
+.lead{color:var(--sub);margin:0 0 16px;font-size:14px}
+.drop{display:block;border:2px dashed var(--line);border-radius:14px;background:var(--panel);
+  padding:38px 18px;text-align:center;cursor:pointer}
+.drop strong{display:block;font-size:17px;margin-bottom:4px}
+.drop span{color:var(--sub);font-size:13px}
+.drop:focus-within,.drop.over{border-color:var(--gold)}
+input[type=file]{position:absolute;opacity:0;width:1px;height:1px}
+.stage{position:relative;background:
+  repeating-conic-gradient(var(--chk-a) 0 25%,var(--chk-b) 0 50%) 0 0/16px 16px;
+  border:1px solid var(--line);border-radius:12px;height:min(52vh,420px);
+  display:flex;overflow:auto;padding:8px}
+#view{margin:auto;flex:none;image-rendering:pixelated;image-rendering:crisp-edges;cursor:grab;touch-action:none}
+#view.erase{cursor:crosshair}
+.stagewrap{position:relative}
+.zoom{position:absolute;right:8px;bottom:8px;display:flex;gap:4px;align-items:center}
+.zoom button{min-height:34px;min-width:38px;padding:0 8px;font-weight:700}
+.zoom span{font-size:12px;background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:2px 6px}
+#view.drag{cursor:grabbing}
+.bar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin:10px 0}
+.bar .grow{flex:1;min-width:140px}
+button,.seg label{font:inherit;color:var(--ink);background:var(--panel);border:1px solid var(--line);
+  border-radius:9px;padding:7px 12px;cursor:pointer;min-height:38px}
+button:hover{border-color:var(--sub)}
+button:focus-visible,.seg input:focus-visible+span,input:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+button.primary{background:var(--gold);border-color:var(--gold);color:#fff;font-weight:700}
+:root[data-theme="dark"] button.primary{color:#1D2130}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]) button.primary{color:#1D2130}}
+button:disabled{opacity:.5;cursor:default}
+.play{min-width:92px;font-weight:700}
+input[type=range]{width:100%;accent-color:var(--gold)}
+.small{font-size:13px;color:var(--sub)}
+.nudge{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.nudge .pad{display:grid;grid-template-columns:repeat(3,42px);grid-template-rows:repeat(2,38px);gap:4px}
+.nudge .pad button{padding:0;min-height:0}
+.nudge .pad .u{grid-column:2}.nudge .pad .l{grid-column:1;grid-row:2}.nudge .pad .d{grid-column:2;grid-row:2}.nudge .pad .r{grid-column:3;grid-row:2}
+.frames{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 10px;scroll-snap-type:x proximity}
+.fr{flex:0 0 auto;width:74px;scroll-snap-align:start;padding:4px;border-radius:10px;
+  background:var(--panel);border:2px solid var(--line);display:flex;flex-direction:column;align-items:center;gap:2px;min-height:0}
+.fr canvas{width:64px;height:64px;image-rendering:pixelated;
+  background:repeating-conic-gradient(var(--chk-a) 0 25%,var(--chk-b) 0 50%) 0 0/8px 8px;border-radius:6px}
+.fr.sel{border-color:var(--gold)}
+.fr.off canvas{opacity:.25}
+.fr .n{font-size:12px;color:var(--sub);line-height:1.2}
+.fr.off .n{text-decoration:line-through}
+section.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin-top:12px}
+section.card h2{font-size:15px;margin:0 0 8px}
+.row{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:8px 0}
+.row > .lab{min-width:84px;font-weight:500}
+.num{width:64px;font:inherit;padding:6px 8px;border-radius:8px;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.seg{display:inline-flex;flex-wrap:wrap;gap:4px}
+.seg label{padding:0;border:none;background:none;min-height:0}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}
+.seg span{display:block;padding:6px 11px;border:1px solid var(--line);border-radius:9px;background:var(--paper);cursor:pointer}
+.seg input:checked+span{background:var(--gold-soft);border-color:var(--gold);font-weight:700}
+.chk{display:inline-flex;align-items:center;gap:6px;cursor:pointer}
+.chk input{accent-color:var(--gold);width:18px;height:18px}
+.status{min-height:1.6em;margin-top:10px;font-size:14px}
+.status.err{color:#C0392B}
+.hidden{display:none!important}
+@media (prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style>
+</head>
+<body>
+<main>
+  <h1>コマ割りGIFメーカー</h1>
+  <p class="lead">スプライトシートをマス目で分けて、キャラの位置をそろえてGIFにします。</p>
 
-      <section class="grid" aria-label="ゲーム一覧">
-        <!-- Reversi -->
-        <a class="card" href="./web2/" aria-label="NEON REVERSI を開く">
-          <div class="cardTop">
-            <div class="title">NEON REVERSI</div>
-            <div class="tag">Playable</div>
-          </div>
-          <div class="desc">
-            ネオン調リバーシ。CPU：Easy / Normal / Hard
-          </div>
-          <div class="meta">
-            <span>HTML / Canvas</span>
-            <span>Mobile OK</span>
-          </div>
-          <div class="cta">Play →</div>
-        </a>
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept="image/*">
+    <strong>シート画像を選ぶ</strong>
+    <span>PNG・JPEG。ここにドロップしてもOK</span>
+  </label>
 
-        <a class="card" href="./apng/" aria-label="APNGツールを開く">
-          <div class="cardTop">
-            <div class="title">APNG TOOL</div>
-            <div class="tag">Tool</div>
-          </div>
-          <div class="desc">
-            立ち絵モーション／APNG生成ツール
-          </div>
-          <div class="meta">
-            <span>Web Tool</span>
-            <span>Mobile OK</span>
-          </div>
-          <div class="cta">Open →</div>
-        </a>
+  <div id="app" class="hidden">
+    <div class="stagewrap">
+      <div class="stage" id="stage"><canvas id="view" width="1" height="1" aria-label="プレビュー"></canvas></div>
+      <div class="zoom"><button id="zout" aria-label="縮小">−</button><span id="ztxt">×1</span><button id="zin" aria-label="拡大">＋</button></div>
+    </div>
 
-        <!-- Dopa Tetris -->
-        <a class="card" href="./tetris/" aria-label="DOPA TETRIS を開く">
-          <div class="cardTop">
-            <div class="title">DOPA TETRIS</div>
-            <div class="tag">Playable</div>
-          </div>
-          <div class="desc">
-            ドパミン過剰供給テトリス。ガチャ／フィーバー／実況つき
-          </div>
-          <div class="meta">
-            <span>HTML / Canvas</span>
-            <span>Mobile OK</span>
-          </div>
-          <div class="cta">Play →</div>
-        </a>
+    <div class="bar">
+      <button class="play" id="play">▶ 再生</button>
+      <div class="grow">
+        <div class="small">1コマの長さ <b id="delayTxt">80</b> ms</div>
+        <input type="range" id="delay" min="20" max="400" step="10" value="80" aria-label="1コマの長さ">
+      </div>
+      <div class="small" id="sizeTxt"></div>
+    </div>
 
-        <!-- Junai Suika -->
-        <a class="card" href="./suika/" aria-label="JUNAI SUIKA を開く">
-          <div class="cardTop">
-            <div class="title">JUNAI SUIKA</div>
-            <div class="tag">Playable</div>
-          </div>
-          <div class="desc">
-            彼の頭の中に独白を積むスイカゲーム。線を越えたら、終わり
-          </div>
-          <div class="meta">
-            <span>HTML / Canvas</span>
-            <span>Mobile OK</span>
-          </div>
-          <div class="cta">Play →</div>
-        </a>
-
-        <!-- 追加用ダミー（あとで増やす） -->
-        <div class="card ghost" aria-hidden="true">
-          <div class="cardTop">
-            <div class="title">NEXT GAME</div>
-            <div class="tag">Soon</div>
-          </div>
-          <div class="desc">
-            ここに次のゲームを追加予定。
-          </div>
-          <div class="meta">
-            <span>Coming soon</span>
-            <span>🎮</span>
-          </div>
-          <div class="cta">Build →</div>
+    <div class="nudge" id="nudge">
+      <div class="row" style="margin-top:0">
+        <b id="selTxt">コマ 1</b>
+        <div class="seg">
+          <label><input type="radio" name="tool" value="move" checked><span>位置を動かす</span></label>
+          <label><input type="radio" name="tool" value="erase"><span>消しゴム</span></label>
         </div>
-      </section>
-
-      <footer class="foot">
-        <div class="hint">
-          iPhone: 共有 → 「ホーム画面に追加」でアプリっぽく起動できます
+      </div>
+      <div id="movePanel">
+        <div class="row">
+          <div style="flex:1;min-width:160px">
+            <div class="small" id="offTxt"></div>
+            <div class="small">プレビューをドラッグ、または矢印で1pxずつ</div>
+            <label class="chk" style="margin-top:6px"><input type="checkbox" id="onion" checked> 前のコマを透かす</label>
+          </div>
+          <div class="pad">
+            <button class="u" data-d="0,-1" aria-label="上へ">↑</button>
+            <button class="l" data-d="-1,0" aria-label="左へ">←</button>
+            <button class="d" data-d="0,1" aria-label="下へ">↓</button>
+            <button class="r" data-d="1,0" aria-label="右へ">→</button>
+          </div>
         </div>
-        <div class="small">
-          © <span id="y"></span> My Arcade
+        <div class="row" style="margin-bottom:0">
+          <button id="resetOne">位置を戻す</button>
+          <button id="resetAll">全コマの位置を戻す</button>
         </div>
-      </footer>
-    </main>
+      </div>
+      <div id="erasePanel" class="hidden">
+        <div class="row"><span class="small">太さ <b id="brushTxt">8</b>px</span>
+          <div style="flex:1;min-width:140px"><input type="range" id="brush" min="1" max="40" value="8" aria-label="消しゴムの太さ"></div>
+        </div>
+        <div class="small">なぞった所が消えます。細かい所は＋で拡大して、2本指でスクロール。</div>
+        <div class="row" style="margin-bottom:0">
+          <button id="undo">1回戻す</button>
+          <button id="clearMask">このコマの消しゴムを全部戻す</button>
+        </div>
+      </div>
+      <div class="row" style="margin-bottom:0;border-top:1px solid var(--line);padding-top:10px">
+        <span class="small">順番</span>
+        <button id="mvPrev">◀ 前へ</button>
+        <button id="mvNext">後ろへ ▶</button>
+        <button id="toggleOne">このコマを外す</button>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <button id="dupOne">このコマを複製</button>
+        <button id="resetOrder">順番を元に戻す</button>
+      </div>
+    </div>
 
-    <script>
-      document.getElementById("y").textContent = new Date().getFullYear();
-    </script>
-  </body>
+    <div class="frames" id="frames" role="listbox" aria-label="コマ一覧"></div>
+
+    <section class="card">
+      <h2>分け方とそろえ方</h2>
+      <div class="row"><span class="lab">マス目</span>
+        横 <input class="num" type="number" id="cols" min="1" max="32" value="4">
+        縦 <input class="num" type="number" id="rows" min="1" max="32" value="4">
+      </div>
+      <div class="row"><span class="lab">切り方</span>
+        <div class="seg">
+          <label><input type="radio" name="split" value="auto" checked><span>キャラごとに自動</span></label>
+          <label><input type="radio" name="split" value="grid"><span>マス目でスパッと</span></label>
+        </div>
+      </div>
+      <p class="small" style="margin:0 0 4px">「キャラごとに自動」はマス目からはみ出た足やエフェクトも、つながっていれば丸ごとそのコマに入れます。</p>
+<p class="small hidden" id="alphaNote" style="margin:4px 0">透過画像なので、背景はそのまま使います。</p>
+      <div id="bgRows">
+      <div class="row"><span class="lab">背景</span>
+        <label class="chk"><input type="checkbox" id="rmbg" checked> 背景色を消す</label>
+        <label class="chk"><input type="checkbox" id="fringe" checked> 縁のにじみも消す</label>
+      </div>
+      <div class="row"><span class="lab">許容度</span>
+        <div class="grow" style="flex:1;min-width:160px"><input type="range" id="tol" min="0" max="120" value="40" aria-label="背景の許容度"></div>
+        <span class="small" id="tolTxt">40</span>
+      </div>
+      </div>
+      <div class="row"><span class="lab">そろえ方</span>
+        <div class="seg" id="align">
+          <label><input type="radio" name="align" value="char" checked><span>キャラの足元</span></label>
+          <label><input type="radio" name="align" value="box"><span>全体の下端</span></label>
+          <label><input type="radio" name="align" value="none"><span>マス目のまま</span></label>
+        </div>
+      </div>
+      <p class="small" style="margin:4px 0 0">「キャラの足元」はエフェクトなど明るい色を無視して、暗い部分（髪・服・靴）の中心と下端で合わせます。</p>
+    </section>
+
+    <section class="card">
+      <h2>書き出し</h2>
+      <div class="row"><span class="lab">倍率</span>
+        <div class="seg">
+          <label><input type="radio" name="scale" value="0.5"><span>½</span></label>
+          <label><input type="radio" name="scale" value="1" checked><span>1×</span></label>
+          <label><input type="radio" name="scale" value="2"><span>2×</span></label>
+        </div>
+      </div>
+      <div class="row"><span class="lab">GIFの背景</span>
+        <div class="seg">
+          <label><input type="radio" name="bg" value="none" checked><span>透過</span></label>
+          <label><input type="radio" name="bg" value="#ffffff"><span>白</span></label>
+          <label><input type="radio" name="bg" value="custom"><span>色を選ぶ</span></label>
+        </div>
+        <input type="color" id="bgColor" value="#2b3a55" aria-label="背景色">
+      </div>
+      <div class="row"><span class="lab">再生</span>
+        <label class="chk"><input type="checkbox" id="pingpong"> 往復させる</label>
+      </div>
+      <div class="row" style="margin-bottom:0">
+        <button class="primary" id="saveGif">GIFを保存</button>
+        <button id="saveSheet">そろえたシートをPNGで保存</button>
+        <button id="another">別の画像にする</button>
+      </div>
+      <div class="status" id="status" role="status"></div>
+    </section>
+  </div>
+</main>
+
+<script>
+(() => {
+const $ = id => document.getElementById(id);
+const view = $('view'), vctx = view.getContext('2d');
+const S = {
+  sheet:null, cells:[], st:[], order:[], sel:0, playing:false, playPos:0,
+  delay:80, scale:1, zoom:1, layout:null, gridKey:''
+};
+let downloads = null;
+if (window.claude && window.claude.use) {
+  window.claude.use('downloads').then(d => { downloads = d; }).catch(()=>{});
+}
+const tool = () => document.querySelector('input[name=tool]:checked').value;
+
+/* ---------- load ---------- */
+const file = $('file'), drop = $('drop');
+file.addEventListener('change', e => { if (e.target.files[0]) load(e.target.files[0]); });
+['dragover','dragenter'].forEach(t => drop.addEventListener(t, e => { e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(t => drop.addEventListener(t, () => drop.classList.remove('over')));
+drop.addEventListener('drop', e => { e.preventDefault(); const f = e.dataTransfer.files[0]; if (f) load(f); });
+$('another').onclick = () => { file.value=''; file.click(); };
+
+function load(f){
+  const url = URL.createObjectURL(f);
+  const im = new Image();
+  im.onload = () => {
+    const c = document.createElement('canvas'); c.width = im.naturalWidth; c.height = im.naturalHeight;
+    const cx = c.getContext('2d', {willReadFrequently:true}); cx.drawImage(im,0,0);
+    S.sheet = cx.getImageData(0,0,c.width,c.height);
+    { const d=S.sheet.data; let t=0; for (let i=3;i<d.length;i+=16) if (d[i]<250) t++;
+      S.hasAlpha = t > d.length/16*0.02; }   // already a transparent image?
+    $('bgRows').classList.toggle('hidden', S.hasAlpha);
+    $('alphaNote').classList.toggle('hidden', !S.hasAlpha);
+    S.gridKey=''; S.sel=0;
+    drop.classList.add('hidden'); $('app').classList.remove('hidden');
+    process(); URL.revokeObjectURL(url); status('');
+  };
+  im.onerror = () => status('画像を読み込めませんでした。PNGかJPEGを選んでください。', true);
+  im.src = url;
+}
+
+/* ---------- processing ---------- */
+function opts(){
+  return {
+    cols: clampInt($('cols').value,1,32,4), rows: clampInt($('rows').value,1,32,4),
+    rmbg: $('rmbg').checked, fringe: $('fringe').checked, tol: +$('tol').value,
+    align: document.querySelector('input[name=align]:checked').value,
+    split: document.querySelector('input[name=split]:checked').value
+  };
+}
+function clampInt(v,a,b,d){ v = parseInt(v,10); return isNaN(v) ? d : Math.max(a,Math.min(b,v)); }
+
+function bgColor(sh){
+  let r=0,g=0,b=0,n=0; const W=sh.width,H=sh.height,d=sh.data;
+  for (const [cx,cy] of [[0,0],[W-3,0],[0,H-3],[W-3,H-3]])
+    for (let y=cy;y<cy+3;y++) for (let x=cx;x<cx+3;x++){ const i=(y*W+x)*4; r+=d[i];g+=d[i+1];b+=d[i+2];n++; }
+  return [r/n,g/n,b/n];
+}
+
+function process(){
+  if (!S.sheet) return;
+  const o = opts(), sh = S.sheet, W = sh.width, H = sh.height;
+  const key = `${W}x${H}:${o.cols}x${o.rows}`;
+  const n = o.cols*o.rows;
+  if (key !== S.gridKey){
+    S.gridKey = key;
+    S.st = Array.from({length:n}, () => ({dx:0,dy:0,on:true,strokes:[]}));
+    S.order = Array.from({length:n}, (_,i)=>i);
+    S.erase = new Uint8Array(W*H);
+    S.sel = 0;
+  }
+  const full = new ImageData(new Uint8ClampedArray(sh.data), W, H), d = full.data;
+  // transparent images keep their own alpha; colour-based removal would eat dark outlines
+  const useRm = o.rmbg && !S.hasAlpha, thr = S.hasAlpha ? 1 : 128;
+  if (useRm) removeBg(full, bgColor(sh), o.tol, o.fringe);
+  const cw = W/o.cols, ch = H/o.rows;
+  const cellOf = (x,y) => Math.min(o.rows-1,Math.floor(y/ch))*o.cols + Math.min(o.cols-1,Math.floor(x/cw));
+  const pc = new Int16Array(W*H).fill(-1);
+  if (o.split==='auto' && (useRm || S.hasAlpha)){
+    // group touching pixels into pieces; each piece goes to the cell its centre sits in,
+    // so a sprite that pokes over the grid line stays whole
+    // grow the opaque area by 2px so pieces less than ~4px apart join up, then label pieces
+    const R=2, op=new Uint8Array(W*H), tmp=new Uint8Array(W*H), dil=new Uint8Array(W*H);
+    for (let p=0;p<W*H;p++) op[p]=d[p*4+3]>=thr?1:0;
+    for (let y=0;y<H;y++){ const r=y*W; let run=-1e9;
+      for (let x=0;x<W;x++){ if(op[r+x]) run=x; if(x-run<=R) tmp[r+x]=1; }
+      run=1e9; for (let x=W-1;x>=0;x--){ if(op[r+x]) run=x; if(run-x<=R) tmp[r+x]=1; } }
+    for (let x=0;x<W;x++){ let run=-1e9;
+      for (let y=0;y<H;y++){ if(tmp[y*W+x]) run=y; if(y-run<=R) dil[y*W+x]=1; }
+      run=1e9; for (let y=H-1;y>=0;y--){ if(tmp[y*W+x]) run=y; if(run-y<=R) dil[y*W+x]=1; } }
+    const lab=new Int32Array(W*H).fill(-1), buf=new Int32Array(W*H), comps=[];
+    for (let p0=0;p0<W*H;p0++){
+      if (!dil[p0] || lab[p0]!==-1) continue;
+      const id=comps.length; let head=0, tail=0, sx=0, sy=0, cnt=0, x0=W,y0=H,x1=0,y1=0;
+      buf[tail++]=p0; lab[p0]=id;
+      while (head<tail){
+        const p=buf[head++], x=p%W, y=(p-x)/W;
+        if (op[p]){ sx+=x; sy+=y; cnt++; if(x<x0)x0=x; if(x>x1)x1=x; if(y<y0)y0=y; if(y>y1)y1=y; }
+        for (let yy=Math.max(0,y-1); yy<=Math.min(H-1,y+1); yy++)
+          for (let xx=Math.max(0,x-1); xx<=Math.min(W-1,x+1); xx++){
+            const q=yy*W+xx; if (dil[q] && lab[q]===-1){ lab[q]=id; buf[tail++]=q; }
+          }
+      }
+      comps.push({cnt,cx:sx/Math.max(1,cnt),cy:sy/Math.max(1,cnt),b:[x0,y0,x1,y1]});
+    }
+    // big pieces (bodies) go to the cell their centre sits in; small bits (a detached shoe,
+    // dust, sparks) follow the nearest body so they never jump into the next row
+    const maxCnt = comps.reduce((m,c)=>Math.max(m,c.cnt),0);
+    const big = comps.filter(c=>c.cnt>=Math.max(150,maxCnt*0.05));
+    big.forEach(c=>{ c.cell=cellOf(c.cx,c.cy); });
+    const gap=(a,b)=>{ const dx=Math.max(0,a[0]-b[2],b[0]-a[2]), dy=Math.max(0,a[1]-b[3],b[1]-a[3]); return dx*dx+dy*dy; };
+    for (const c of comps){
+      if (c.cell!==undefined || !c.cnt) continue;
+      let best=null, bd=Infinity;
+      for (const g of big){ const v=gap(c.b,g.b); if (v<bd){ bd=v; best=g; } }
+      c.cell = best ? best.cell : cellOf(c.cx,c.cy);
+    }
+    for (let p=0;p<W*H;p++) if (op[p]) pc[p]=comps[lab[p]].cell;
+  } else {
+    for (let y=0;y<H;y++) for (let x=0;x<W;x++){ const p=y*W+x; if (d[p*4+3]>=thr) pc[p]=cellOf(x,y); }
+  }
+  S.pc = pc;
+  const bx0=new Int32Array(n).fill(W), by0=new Int32Array(n).fill(H), bx1=new Int32Array(n).fill(-1), by1=new Int32Array(n).fill(-1);
+  for (let y=0;y<H;y++) for (let x=0;x<W;x++){ const c=pc[y*W+x]; if (c<0) continue;
+    if (x<bx0[c])bx0[c]=x; if (x>bx1[c])bx1[c]=x; if (y<by0[c])by0[c]=y; if (y>by1[c])by1[c]=y; }
+  S.cells = [];
+  for (let c=0;c<n;c++){
+    const col=c%o.cols, row=(c-col)/o.cols;
+    let x0=bx0[c], y0=by0[c], w=bx1[c]-x0+1, h=by1[c]-y0+1;
+    if (bx1[c]<0){ x0=Math.round((col+.5)*cw); y0=Math.round((row+.5)*ch); w=1; h=1; }
+    const id = new ImageData(w,h), fd=id.data;
+    for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+      const p=(y0+y)*W+x0+x; if (pc[p]!==c) continue;
+      const i=p*4, j=(y*w+x)*4; fd[j]=d[i]; fd[j+1]=d[i+1]; fd[j+2]=d[i+2]; fd[j+3]=d[i+3];
+    }
+    const cell = anchor(id, o.align);   // anchor ignores the eraser, so erasing never shifts a frame
+    if (o.align==='none'){ cell.ax=Math.round((col+.5)*cw)-x0; cell.ay=Math.round((row+1)*ch)-1-y0; }
+    for (let y=0;y<h;y++) for (let x=0;x<w;x++) if (S.erase[(y0+y)*W+x0+x]) fd[(y*w+x)*4+3]=0;
+    cell.x0=x0; cell.y0=y0; cell.img=id;
+    cell.box = bbox(id); cell.empty = !cell.box;
+    if (!cell.box) cell.box=[0,0,0,0];
+    cell.canvas = document.createElement('canvas'); cell.canvas.width=w; cell.canvas.height=h;
+    cell.canvas.getContext('2d').putImageData(id,0,0);
+    S.cells.push(cell);
+  }
+  if (S.sel >= S.order.length) S.sel=0;
+  buildThumbs(); relayout(); render();
+}
+
+function removeBg(id, bg, tol, fringe){
+  const w=id.width,h=id.height,d=id.data;
+  const near = (i,t) => Math.abs(d[i]-bg[0])<=t && Math.abs(d[i+1]-bg[1])<=t && Math.abs(d[i+2]-bg[2])<=t;
+  const seen = new Uint8Array(w*h), stack=[];
+  const push = p => { if (!seen[p] && near(p*4,tol)) { seen[p]=1; stack.push(p); } };
+  for (let x=0;x<w;x++){ push(x); push((h-1)*w+x); }
+  for (let y=0;y<h;y++){ push(y*w); push(y*w+w-1); }
+  while (stack.length){
+    const p=stack.pop(), x=p%w, y=(p-x)/w;
+    d[p*4+3]=0;
+    if (x>0) push(p-1); if (x<w-1) push(p+1); if (y>0) push(p-w); if (y<h-1) push(p+w);
+  }
+  if (fringe){
+    const t2 = Math.min(255, tol*2+20), kill=[];
+    for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+      const p=y*w+x; if (seen[p]) continue;
+      const nb = (x>0&&seen[p-1])||(x<w-1&&seen[p+1])||(y>0&&seen[p-w])||(y<h-1&&seen[p+w]);
+      if (nb && near(p*4,t2)) kill.push(p);
+    }
+    for (const p of kill) d[p*4+3]=0;
+  }
+}
+
+function bbox(id){
+  const w=id.width,h=id.height,d=id.data;
+  let x0=w,y0=h,x1=-1,y1=-1;
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    if (d[(y*w+x)*4+3]<128) continue;
+    if (x<x0)x0=x; if (x>x1)x1=x; if (y<y0)y0=y; if (y>y1)y1=y;
+  }
+  return x1<0 ? null : [x0,y0,x1,y1];
+}
+
+function anchor(id, mode){
+  const w=id.width,h=id.height,d=id.data;
+  const b = bbox(id) || [0,0,w-1,h-1];
+  const xs=[]; const rowCount=new Uint32Array(h);
+  for (let y=0;y<h;y++) for (let x=0;x<w;x++){
+    const i=(y*w+x)*4; if (d[i+3]<128) continue;
+    const lum = .299*d[i]+.587*d[i+1]+.114*d[i+2];
+    if (lum<105){ xs.push(x); rowCount[y]++; }
+  }
+  let ax, ay;
+  if (mode==='none'){ ax=Math.round(w/2); ay=h-1; }
+  else if (mode==='box' || xs.length<20){ ax=Math.round((b[0]+b[2])/2); ay=b[3]; }
+  else {
+    xs.sort((a,c)=>a-c); ax = xs[xs.length>>1];
+    ay = b[3]; for (let y=h-1;y>=0;y--) if (rowCount[y]>=3){ ay=y; break; }
+  }
+  return {w,h,ax,ay};
+}
+
+/* ---------- layout ---------- */
+function playlist(){
+  const on = S.order.filter(c=>S.st[c].on);
+  if ($('pingpong').checked && on.length>2) return on.concat(on.slice(1,-1).reverse());
+  return on;
+}
+function relayout(){
+  let ux0=Infinity,uy0=Infinity,ux1=-Infinity,uy1=-Infinity;
+  let list = [...new Set(S.order)].filter(c=>S.st[c].on && !S.cells[c].empty);
+  if (!list.length) list = S.cells.map((_,i)=>i);
+  for (const c of list){
+    const f=S.cells[c], st=S.st[c], ox=-f.ax+st.dx, oy=-f.ay+st.dy;
+    ux0=Math.min(ux0,f.box[0]+ox); uy0=Math.min(uy0,f.box[1]+oy);
+    ux1=Math.max(ux1,f.box[2]+ox); uy1=Math.max(uy1,f.box[3]+oy);
+  }
+  const pad=2;
+  S.layout = { ox:-ux0+pad, oy:-uy0+pad, W:(ux1-ux0+1)+pad*2, H:(uy1-uy0+1)+pad*2 };
+  view.width=S.layout.W; view.height=S.layout.H;
+  fitView();
+  const s=S.scale;
+  $('sizeTxt').textContent = `出力 ${Math.max(1,Math.round(S.layout.W*s))}×${Math.max(1,Math.round(S.layout.H*s))}px・${playlist().length}コマ`;
+}
+function fitView(){
+  const st=$('stage'), L=S.layout; if(!L) return;
+  const k = Math.min((st.clientWidth-16)/L.W, (st.clientHeight-16)/L.H);
+  let z = (k>=1 ? Math.floor(k) : k) * S.zoom;
+  view.style.width = (L.W*z)+'px'; view.style.height=(L.H*z)+'px';
+  $('ztxt').textContent='×'+S.zoom;
+}
+window.addEventListener('resize', fitView);
+$('zin').onclick=()=>{ S.zoom=Math.min(6,S.zoom+1); zoomKeepCenter(); };
+$('zout').onclick=()=>{ S.zoom=Math.max(1,S.zoom-1); zoomKeepCenter(); };
+function zoomKeepCenter(){
+  const st=$('stage');
+  const cx=(st.scrollLeft+st.clientWidth/2)/Math.max(1,st.scrollWidth), cy=(st.scrollTop+st.clientHeight/2)/Math.max(1,st.scrollHeight);
+  fitView();
+  st.scrollLeft=cx*st.scrollWidth-st.clientWidth/2; st.scrollTop=cy*st.scrollHeight-st.clientHeight/2;
+}
+
+function drawFrame(ctx, c, x0, y0, s){
+  const f=S.cells[c], st=S.st[c];
+  ctx.drawImage(f.canvas, Math.round((x0 - f.ax + st.dx)*s), Math.round((y0 - f.ay + st.dy)*s), Math.round(f.w*s), Math.round(f.h*s));
+}
+
+/* ---------- render ---------- */
+function render(){
+  const L=S.layout; if(!L) return;
+  vctx.imageSmoothingEnabled=false;
+  vctx.clearRect(0,0,L.W,L.H);
+  if (S.playing){
+    const pl=playlist(); if(!pl.length) return;
+    drawFrame(vctx, pl[S.playPos % pl.length], L.ox, L.oy, 1);
+    return;
+  }
+  const c=S.order[S.sel]; if(c===undefined) return;
+  const st=S.st[c], erasing = tool()==='erase';
+  if ($('onion').checked && !erasing){
+    let prev;
+    for (let i=S.sel-1;i>=0;i--) if (S.st[S.order[i]].on && S.order[i]!==c){ prev=S.order[i]; break; }
+    if (prev===undefined) for (let i=S.order.length-1;i>S.sel;i--) if (S.st[S.order[i]].on && S.order[i]!==c){ prev=S.order[i]; break; }
+    if (prev!==undefined){ vctx.globalAlpha=.3; drawFrame(vctx,prev,L.ox,L.oy,1); vctx.globalAlpha=1; }
+  }
+  drawFrame(vctx,c,L.ox,L.oy,1);
+  if (!erasing){
+    vctx.fillStyle='rgba(214,150,20,.75)';
+    vctx.fillRect(0,L.oy,L.W,1); vctx.fillRect(L.ox,0,1,L.H);
+  }
+  if (brushAt){
+    const b=+$('brush').value, h=Math.floor(b/2);
+    vctx.strokeStyle='rgba(214,150,20,.9)'; vctx.lineWidth=1;
+    vctx.strokeRect(brushAt[0]-h+.5, brushAt[1]-h+.5, b-1, b-1);
+  }
+  const dupCount = S.order.filter(x=>x===c).length;
+  $('selTxt').textContent = `コマ ${S.sel+1} / ${S.order.length}` + (st.on?'':'（外し中）');
+  $('offTxt').textContent = `ずらし x${sign(st.dx)} y${sign(st.dy)}・元のマス ${c+1}番`;
+  $('toggleOne').textContent = dupCount>1 ? 'この複製を削除' : (st.on ? 'このコマを外す' : 'このコマを使う');
+  $('mvPrev').disabled = S.sel===0; $('mvNext').disabled = S.sel===S.order.length-1;
+  $('undo').disabled = !st.strokes.length; $('clearMask').disabled = !st.strokes.length;
+}
+const sign = v => (v>=0?'+':'')+v;
+
+function buildThumbs(){
+  const box=$('frames'), keep=box.scrollLeft; box.innerHTML='';
+  S.order.forEach((c,i)=>{
+    const f=S.cells[c];
+    const b=document.createElement('button'); b.className='fr'; b.setAttribute('role','option');
+    const cv=document.createElement('canvas'); cv.width=64;cv.height=64;
+    const cx=cv.getContext('2d'); cx.imageSmoothingEnabled=false;
+    const bw=f.box[2]-f.box[0]+1, bh=f.box[3]-f.box[1]+1, k=Math.min(64/bw,64/bh);
+    cx.drawImage(f.canvas,f.box[0],f.box[1],bw,bh,(64-bw*k)/2,(64-bh*k)/2,bw*k,bh*k);
+    const n=document.createElement('span'); n.className='n'; n.textContent=i+1;
+    b.append(cv,n);
+    b.onclick=()=>select(i);
+    box.append(b);
+  });
+  box.scrollLeft=keep;
+  refreshThumbs();
+}
+function refreshThumbs(){
+  [...$('frames').children].forEach((b,i)=>{
+    const c=S.order[i];
+    b.classList.toggle('sel', i===S.sel && !S.playing);
+    b.classList.toggle('off', !S.st[c].on);
+    b.setAttribute('aria-selected', i===S.sel);
+    b.setAttribute('aria-label', `コマ ${i+1}${S.st[c].on?'':'（外し中）'}`);
+  });
+}
+function select(i){ S.sel=i; setPlaying(false); refreshThumbs(); render();
+  const el=$('frames').children[i]; if(el) el.scrollIntoView({block:'nearest',inline:'nearest'}); }
+
+/* ---------- playback ---------- */
+let last=0, acc=0;
+function tick(t){
+  if(!S.playing) return;
+  if(last) acc += t-last; last=t;
+  if (acc>=S.delay){ acc%=S.delay; S.playPos++; render(); }
+  requestAnimationFrame(tick);
+}
+function setPlaying(p){
+  S.playing=p; $('play').textContent = p?'⏸ 止める':'▶ 再生';
+  $('nudge').classList.toggle('hidden', p);
+  refreshThumbs();
+  if (p){ last=0; acc=0; S.playPos=0; requestAnimationFrame(tick); }
+  render();
+}
+$('play').onclick=()=>setPlaying(!S.playing);
+$('delay').oninput=e=>{ S.delay=+e.target.value; $('delayTxt').textContent=S.delay; };
+
+/* ---------- tools ---------- */
+document.querySelectorAll('input[name=tool]').forEach(r=>r.addEventListener('change',()=>{
+  const e=tool()==='erase';
+  $('movePanel').classList.toggle('hidden',e); $('erasePanel').classList.toggle('hidden',!e);
+  view.classList.toggle('erase',e); render();
+}));
+$('brush').oninput=e=>{ $('brushTxt').textContent=e.target.value; };
+
+function nudge(dx,dy){
+  const c=S.order[S.sel]; if(c===undefined) return;
+  S.st[c].dx+=dx; S.st[c].dy+=dy; relayout(); render();
+}
+document.querySelectorAll('.pad button').forEach(b=>b.onclick=()=>{ const [x,y]=b.dataset.d.split(',').map(Number); nudge(x,y); });
+window.addEventListener('keydown',e=>{
+  if (S.playing || !S.order.length) return;
+  const a=document.activeElement;
+  if (a && a.tagName==='INPUT' && !['checkbox','radio'].includes(a.type)) return;
+  const m={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];
+  if (m && tool()==='move'){ e.preventDefault(); nudge(m[0],m[1]); }
+  else if (e.key===',') select((S.sel-1+S.order.length)%S.order.length);
+  else if (e.key==='.') select((S.sel+1)%S.order.length);
+  else if ((e.key==='z'||e.key==='Z') && (e.metaKey||e.ctrlKey)){ e.preventDefault(); undo(); }
+});
+$('resetOne').onclick=()=>{ const st=S.st[S.order[S.sel]]; st.dx=st.dy=0; relayout(); render(); };
+$('resetAll').onclick=()=>{ S.st.forEach(st=>{st.dx=st.dy=0;}); relayout(); render(); };
+$('onion').onchange=render;
+
+/* order */
+function moveSel(dir){
+  const i=S.sel, j=i+dir; if (j<0||j>=S.order.length) return;
+  [S.order[i],S.order[j]]=[S.order[j],S.order[i]]; S.sel=j; buildThumbs(); relayout(); render();
+  const el=$('frames').children[j]; if(el) el.scrollIntoView({block:'nearest',inline:'nearest'});
+}
+$('mvPrev').onclick=()=>moveSel(-1);
+$('mvNext').onclick=()=>moveSel(1);
+$('dupOne').onclick=()=>{ S.order.splice(S.sel+1,0,S.order[S.sel]); S.sel++; buildThumbs(); relayout(); render(); };
+$('toggleOne').onclick=()=>{
+  const c=S.order[S.sel];
+  if (S.order.filter(x=>x===c).length>1){ S.order.splice(S.sel,1); S.sel=Math.min(S.sel,S.order.length-1); buildThumbs(); }
+  else { S.st[c].on=!S.st[c].on; refreshThumbs(); }
+  relayout(); render();
+};
+$('resetOrder').onclick=()=>{ const c=S.order[S.sel]; S.order=S.cells.map((_,i)=>i); S.sel=c; buildThumbs(); relayout(); render(); };
+
+/* eraser */
+function unset(list){ for (const p of list) S.erase[p]=0; }
+function undo(){
+  const st=S.st[S.order[S.sel]]; if(!st.strokes.length) return;
+  unset(st.strokes.pop()); process();
+}
+$('undo').onclick=undo;
+$('clearMask').onclick=()=>{ const st=S.st[S.order[S.sel]]; st.strokes.forEach(unset); st.strokes=[]; process(); };
+
+function toCell(e){
+  const r=view.getBoundingClientRect(), k=r.width/view.width;
+  const vx=(e.clientX-r.left)/k, vy=(e.clientY-r.top)/k;
+  const c=S.order[S.sel], f=S.cells[c], st=S.st[c], L=S.layout;
+  return { vx, vy, fx: vx-(L.ox-f.ax+st.dx), fy: vy-(L.oy-f.ay+st.dy) };
+}
+function eraseSpot(c, fx, fy, stroke){
+  const f=S.cells[c], b=+$('brush').value, h=Math.floor(b/2), W=S.sheet.width, fd=f.img.data;
+  const x0=Math.max(0,Math.floor(fx)-h), y0=Math.max(0,Math.floor(fy)-h);
+  const x1=Math.min(f.w,Math.floor(fx)-h+b), y1=Math.min(f.h,Math.floor(fy)-h+b);
+  if (x1<=x0||y1<=y0) return;
+  for (let y=y0;y<y1;y++) for (let x=x0;x<x1;x++){
+    const p=(f.y0+y)*W+f.x0+x;
+    if (S.pc[p]!==c || S.erase[p]) continue;
+    S.erase[p]=1; stroke.push(p); fd[(y*f.w+x)*4+3]=0;
+  }
+  f.canvas.getContext('2d').putImageData(f.img,0,0,x0,y0,x1-x0,y1-y0);
+}
+let brushAt=null;
+
+/* pointers: 1 finger = move / erase, 2 fingers = scroll the zoomed stage */
+const pts=new Map(); let act=null, pan=null;
+const mid=()=>{ const v=[...pts.values()]; return [(v[0].x+v[1].x)/2,(v[0].y+v[1].y)/2]; };
+view.addEventListener('pointerdown',e=>{
+  if (S.playing) setPlaying(false);
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  view.setPointerCapture(e.pointerId);
+  if (pts.size===2){ cancelAct(); pan={m:mid()}; return; }
+  if (pts.size>2) return;
+  const c=S.order[S.sel]; if(c===undefined) return;
+  const st=S.st[c];
+  if (tool()==='erase'){
+    const p=toCell(e); act={type:'erase',c,lx:p.fx,ly:p.fy,stroke:[]};
+    eraseSpot(c,p.fx,p.fy,act.stroke); brushAt=[Math.floor(p.vx),Math.floor(p.vy)]; render();
+  } else {
+    act={type:'move',c,x:e.clientX,y:e.clientY,dx:st.dx,dy:st.dy,k:view.clientWidth/view.width};
+    view.classList.add('drag');
+  }
+});
+view.addEventListener('pointermove',e=>{
+  if (!pts.has(e.pointerId)) return;
+  pts.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if (pan && pts.size===2){
+    const m=mid(), st=$('stage');
+    st.scrollLeft-=m[0]-pan.m[0]; st.scrollTop-=m[1]-pan.m[1]; pan.m=m; return;
+  }
+  if (!act) return;
+  if (act.type==='move'){
+    const st=S.st[act.c];
+    st.dx=act.dx+Math.round((e.clientX-act.x)/act.k);
+    st.dy=act.dy+Math.round((e.clientY-act.y)/act.k);
+    render();
+  } else {
+    const p=toCell(e), dx=p.fx-act.lx, dy=p.fy-act.ly;
+    const steps=Math.max(1,Math.ceil(Math.hypot(dx,dy)/Math.max(1,+$('brush').value/3)));
+    for (let i=1;i<=steps;i++) eraseSpot(act.c, act.lx+dx*i/steps, act.ly+dy*i/steps, act.stroke);
+    act.lx=p.fx; act.ly=p.fy; brushAt=[Math.floor(p.vx),Math.floor(p.vy)]; render();
+  }
+});
+function cancelAct(){
+  if (!act) return;
+  const st=S.st[act.c];
+  if (act.type==='move'){ st.dx=act.dx; st.dy=act.dy; view.classList.remove('drag'); act=null; render(); }
+  else { unset(act.stroke); act=null; brushAt=null; process(); }
+}
+function endPtr(e){
+  pts.delete(e.pointerId);
+  if (pts.size<2) pan=null;
+  if (!act || pts.size>0) return;
+  const done=act; act=null; brushAt=null; view.classList.remove('drag');
+  if (done.type==='erase'){
+    if (done.stroke.length) S.st[done.c].strokes.push(Int32Array.from(done.stroke));
+    const f=S.cells[done.c];
+    const b=bbox(f.canvas.getContext('2d',{willReadFrequently:true}).getImageData(0,0,f.w,f.h));
+    f.empty=!b; f.box=b||[0,0,0,0]; buildThumbs();
+  }
+  relayout(); render();
+}
+view.addEventListener('pointerup',endPtr); view.addEventListener('pointercancel',endPtr);
+
+/* ---------- settings ---------- */
+['cols','rows'].forEach(id=>$(id).addEventListener('change',process));
+document.querySelectorAll('input[name=split]').forEach(r=>r.addEventListener('change',process));
+['rmbg','fringe'].forEach(id=>$(id).addEventListener('change',process));
+let tolT; $('tol').addEventListener('input',e=>{ $('tolTxt').textContent=e.target.value; clearTimeout(tolT); tolT=setTimeout(process,120); });
+document.querySelectorAll('input[name=align]').forEach(r=>r.addEventListener('change',()=>{ S.st.forEach(st=>{st.dx=st.dy=0;}); process(); }));
+document.querySelectorAll('input[name=scale]').forEach(r=>r.addEventListener('change',()=>{ S.scale=+r.value; relayout(); }));
+$('pingpong').onchange=()=>{ relayout(); };
+
+/* ---------- export ---------- */
+function bgChoice(){
+  const v=document.querySelector('input[name=bg]:checked').value;
+  return v==='custom' ? $('bgColor').value : v;
+}
+function renderOut(c, s, bg){
+  const L=S.layout, W=Math.max(1,Math.round(L.W*s)), H=Math.max(1,Math.round(L.H*s));
+  const cv=document.createElement('canvas'); cv.width=W;cv.height=H;
+  const cx=cv.getContext('2d',{willReadFrequently:true}); cx.imageSmoothingEnabled=false;
+  if (bg!=='none'){ cx.fillStyle=bg; cx.fillRect(0,0,W,H); }
+  drawFrame(cx,c,L.ox,L.oy,s);
+  return cx.getImageData(0,0,W,H);
+}
+
+$('saveGif').onclick=async()=>{
+  const pl=playlist(); if(!pl.length){ status('使うコマがありません。コマを1つ以上選んでください。',true); return; }
+  $('saveGif').disabled=true; status('GIFを作っています…');
+  await new Promise(r=>setTimeout(r,30));
+  try{
+    const bg=bgChoice(), s=S.scale;
+    const imgs=pl.map(c=>renderOut(c,s,bg));
+    const bytes=encodeGif(imgs, Math.max(2,Math.round(S.delay/10)), bg==='none');
+    await save('sprite.gif', new Blob([bytes],{type:'image/gif'}), `GIFを保存しました（${(bytes.length/1024).toFixed(0)}KB）`);
+  }catch(err){ status('GIFを作れませんでした: '+err.message,true); }
+  $('saveGif').disabled=false;
+};
+$('saveSheet').onclick=async()=>{
+  const on=S.order.filter(c=>S.st[c].on); if(!on.length) return;
+  const s=S.scale, L=S.layout, W=Math.round(L.W*s), H=Math.round(L.H*s), cols=opts().cols;
+  const rows=Math.ceil(on.length/cols);
+  const cv=document.createElement('canvas'); cv.width=W*cols; cv.height=H*rows;
+  const cx=cv.getContext('2d'); cx.imageSmoothingEnabled=false;
+  on.forEach((c,k)=>{ const x=(k%cols)*W, y=Math.floor(k/cols)*H;
+    cx.save(); cx.beginPath(); cx.rect(x,y,W,H); cx.clip(); drawFrame(cx,c,L.ox+x/s,L.oy+y/s,s); cx.restore(); });
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));
+  await save('sprite-aligned.png', blob, `シートを保存しました（1マス ${W}×${H}px）`);
+};
+
+async function save(name, blob, okMsg){
+  if (downloads){
+    try{ await downloads.save({filename:name, data:blob}); status(okMsg); }
+    catch(e){
+      if (e && e.code==='declined') status('保存をキャンセルしました。');
+      else if (e && e.code==='rate_limited') status('少し待ってからもう一度押してください。',true);
+      else status('ここでは保存できませんでした。',true);
+    }
+    return;
+  }
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.append(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+  status(okMsg);
+}
+function status(msg,err){ const el=$('status'); el.textContent=msg; el.classList.toggle('err',!!err); }
+
+/* ---------- GIF encoder ---------- */
+function buildPalette(imgs, max){
+  const hist=new Uint32Array(32768);
+  for (const im of imgs){ const d=im.data; for(let i=0;i<d.length;i+=4){ if(d[i+3]<128) continue; hist[((d[i]>>3)<<10)|((d[i+1]>>3)<<5)|(d[i+2]>>3)]++; } }
+  const items=[]; for(let k=0;k<32768;k++) if(hist[k]) items.push(k);
+  const ch=(k,c)=> c===0?(k>>10)&31 : c===1?(k>>5)&31 : k&31;
+  const boxes=[items];
+  const range=b=>{ let best=-1,bc=0; for(let c=0;c<3;c++){ let lo=31,hi=0; for(const k of b){const v=ch(k,c); if(v<lo)lo=v; if(v>hi)hi=v;} if(hi-lo>best){best=hi-lo;bc=c;} } return [best,bc]; };
+  while (boxes.length<max){
+    let bi=-1, br=0, bc=0;
+    boxes.forEach((b,i)=>{ if(b.length<2) return; const [r,c]=range(b); const score=r*Math.log2(1+b.reduce((s,k)=>s+hist[k],0)); if(score>br){br=score;bi=i;bc=c;} });
+    if (bi<0) break;
+    const b=boxes[bi].sort((x,y)=>ch(x,bc)-ch(y,bc));
+    const tot=b.reduce((s,k)=>s+hist[k],0); let acc=0, cut=1;
+    for(let i=0;i<b.length;i++){ acc+=hist[b[i]]; if(acc>=tot/2){ cut=Math.max(1,Math.min(b.length-1,i+1)); break; } }
+    boxes.splice(bi,1,b.slice(0,cut),b.slice(cut));
+  }
+  const pal=boxes.filter(b=>b.length).map(b=>{ let r=0,g=0,bl=0,n=0; for(const k of b){const w=hist[k]; r+=(ch(k,0)*8+4)*w; g+=(ch(k,1)*8+4)*w; bl+=(ch(k,2)*8+4)*w; n+=w;} return [Math.round(r/n),Math.round(g/n),Math.round(bl/n)]; });
+  return pal.length?pal:[[0,0,0]];
+}
+function encodeGif(imgs, delayCs, transparent){
+  const W=imgs[0].width, H=imgs[0].height;
+  const pal=buildPalette(imgs,255);               // index 0 is reserved
+  const table=[[0,0,0],...pal]; while(table.length<256) table.push([0,0,0]);
+  const map=new Int16Array(32768).fill(-1);
+  const look=k=>{ if(map[k]>=0) return map[k]; const r=((k>>10)&31)*8+4,g=((k>>5)&31)*8+4,b=(k&31)*8+4;
+    let best=1,bd=1e9; for(let i=1;i<=pal.length;i++){ const p=table[i]; const dd=(p[0]-r)**2*2+(p[1]-g)**2*4+(p[2]-b)**2*3; if(dd<bd){bd=dd;best=i;} } return map[k]=best; };
+  const out=[]; const w8=v=>out.push(v&255); const w16=v=>{w8(v);w8(v>>8);}; const str=s=>{for(const c of s) w8(c.charCodeAt(0));};
+  str('GIF89a'); w16(W); w16(H); w8(0xF7); w8(0); w8(0);
+  for(const p of table){ w8(p[0]); w8(p[1]); w8(p[2]); }
+  w8(0x21);w8(0xFF);w8(11);str('NETSCAPE2.0');w8(3);w8(1);w16(0);w8(0);
+  const idx=new Uint8Array(W*H);
+  for(const im of imgs){
+    const d=im.data;
+    for(let p=0,i=0;p<W*H;p++,i+=4) idx[p] = d[i+3]<128 ? 0 : look(((d[i]>>3)<<10)|((d[i+1]>>3)<<5)|(d[i+2]>>3));
+    w8(0x21);w8(0xF9);w8(4); w8(transparent ? (2<<2)|1 : (1<<2)); w16(delayCs); w8(0); w8(0);
+    w8(0x2C); w16(0);w16(0);w16(W);w16(H); w8(0);
+    w8(8); lzw(idx,8,out);
+  }
+  w8(0x3B);
+  return new Uint8Array(out);
+}
+function lzw(idx, mcs, out){
+  const clear=1<<mcs, eoi=clear+1; let cs=mcs+1, next=eoi+1, dict=new Map();
+  const buf=[]; let cur=0, bits=0;
+  const emit=c=>{ cur|=c<<bits; bits+=cs; while(bits>=8){ buf.push(cur&255); cur>>>=8; bits-=8; } };
+  emit(clear);
+  let prefix=idx[0];
+  for(let i=1;i<idx.length;i++){
+    const k=idx[i], key=(prefix<<8)|k, hit=dict.get(key);
+    if(hit!==undefined){ prefix=hit; continue; }
+    emit(prefix);
+    if(next<4096){ dict.set(key,next++); if(next>(1<<cs) && cs<12) cs++; }
+    else { emit(clear); dict=new Map(); cs=mcs+1; next=eoi+1; }
+    prefix=k;
+  }
+  emit(prefix); emit(eoi);
+  if(bits>0) buf.push(cur&255);
+  for(let i=0;i<buf.length;i+=255){ const n=Math.min(255,buf.length-i); out.push(n); for(let j=0;j<n;j++) out.push(buf[i+j]); }
+  out.push(0);
+}
+})();
+</script>
+</body>
 </html>
